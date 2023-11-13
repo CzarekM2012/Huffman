@@ -1,16 +1,16 @@
-class Node():
+class Node:
 
-    def __init__(self, wage, parent=None, side=None, symbol=None):
+    def __init__(self, weight, parent=None, side=None, symbol=None):
         self.parent = parent
         self.side = side
-        self.wage = wage
+        self.weight = weight
         self.symbol = symbol
         self.children = [None, None]
 
     def __str__(self):
         prefix = '\\' if self.side else '-'
-        sufix = f"({self.symbol})" if self.symbol else ''
-        return f"{prefix}{self.wage} {sufix}"
+        suffix = f"({self.symbol})" if self.symbol else ''
+        return f"{prefix}{self.weight} {suffix}"
 
     def print(self, pad=1):
         print(self, end='\t')
@@ -21,7 +21,7 @@ class Node():
             self.children[1].print(pad+1)
 
 
-class HuffmannTree():
+class HuffmanTree:
     nodes = []
 
     def __init__(self):
@@ -43,7 +43,7 @@ class HuffmannTree():
 
         if i is None:
             sibling = self.nodes[0]
-            parent = Node(sibling.wage, sibling.parent, sibling.side)
+            parent = Node(sibling.weight, sibling.parent, sibling.side)
             if sibling.parent:
                 sibling.parent.children[sibling.side] = parent
             parent.children[1] = sibling
@@ -55,12 +55,12 @@ class HuffmannTree():
             return
 
         while True:
-            self.nodes[i].wage += 1
+            self.nodes[i].weight += 1
             if self.nodes[i].parent is None:
                 break
 
             j = i
-            while (self.nodes[j + 1].wage == self.nodes[i].wage - 1):
+            while (self.nodes[j + 1].weight == self.nodes[i].weight - 1):
                 j += 1
             self._swap_nodes(i, j)
             i = j
@@ -106,7 +106,7 @@ class HuffmannTree():
 
 
 if __name__ == "__main__":
-    ht = HuffmannTree()
+    ht = HuffmanTree()
     print(ht.decode(ht.code('A')))
     print(ht.decode(ht.code('B')))
     print(ht.decode(ht.code('C')))

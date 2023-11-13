@@ -22,10 +22,11 @@ class Node:
 
 
 class HuffmanTree:
-    nodes = []
-
     def __init__(self):
-        self.nodes = [Node(31)]
+        self.nodes = []  # attribute
+
+        # example data (to remove)
+        self.nodes.append(Node(31))
         self.nodes.insert(0, Node(19, self.nodes[-1], 1))
         self.nodes.insert(0, Node(12, self.nodes[-1], 0, 'B'))
         self.nodes.insert(0, Node(11, self.nodes[-2], 1))
@@ -60,7 +61,7 @@ class HuffmanTree:
                 break
 
             j = i
-            while (self.nodes[j + 1].weight == self.nodes[i].weight - 1):
+            while self.nodes[j + 1].weight == (self.nodes[i].weight - 1):
                 j += 1
             self._swap_nodes(i, j)
             i = j
@@ -89,6 +90,7 @@ class HuffmanTree:
         for i, n in enumerate(self.nodes):
             if n.symbol == symbol:
                 return i
+        return None  # more readable
 
     def _swap_nodes(self, i, j):
         a, b = self.nodes[i], self.nodes[j]

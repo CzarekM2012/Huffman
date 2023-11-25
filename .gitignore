@@ -1,0 +1,7 @@
+# vscode settings
+.vscode/*
+
+# python venv
+Lib/*
+Scripts/*
+pyvenv.cfg

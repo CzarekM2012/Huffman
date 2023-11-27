@@ -2,7 +2,8 @@
 Collection arguments passed by user and calling encoding with huffman algorithm
 """
 import argparse
-import pathlib
+from pathlib import Path
+from src.basicHuffman import encode as basic_encode
 
 TYPE_CHOICES = ["basic", "adaptive"]
 
@@ -19,7 +20,7 @@ def get_args() -> argparse.Namespace:
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
     )
 
-    parser.add_argument("files", metavar="FILE", nargs="+", type=pathlib.Path)
+    parser.add_argument("files", metavar="FILE", nargs="+", type=Path)
 
     parser.add_argument(
         "-t",
@@ -49,8 +50,7 @@ if __name__ == "__main__":
             continue
         new_file = file.with_suffix(".huf")  # replace extension for new file
         if args.type == TYPE_CHOICES[0]:  # basic Huffman
-            # basic_encode(file, new_file)
-            print("Encoding with basic Huffman algorithm has not been implemented yet")
+            basic_encode(file, new_file)
         else:  # adaptive Huffman
             # adaptive_encode(file, new_file)
             print("Encoding with adaptive Huffman algorithm has not been implemented yet")

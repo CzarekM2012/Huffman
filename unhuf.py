@@ -2,7 +2,10 @@
 Collection arguments passed by user and calling decoding files encoded with huffman algorithm
 """
 import argparse
-import pathlib
+from pathlib import Path
+from types import SimpleNamespace
+from bitarray.util import ba2int
+from src.basicHuffman import decode as basic_decode, BASIC_HUFFMAN, get_n_bits
 
 
 def get_args() -> argparse.Namespace:
@@ -17,7 +20,7 @@ def get_args() -> argparse.Namespace:
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
     )
 
-    parser.add_argument("files", metavar="FILE", nargs="+", type=pathlib.Path)
+    parser.add_argument("files", metavar="FILE", nargs="+", type=Path)
 
     parser.add_argument(
         "-v",
@@ -30,6 +33,21 @@ def get_args() -> argparse.Namespace:
     return parser.parse_args()
 
 
+def decode(filepath: Path):
+    # Can't use constants directly in match-case because they would be always matching
+    identifiers = SimpleNamespace()
+    identifiers.basic_huffman = BASIC_HUFFMAN
+
+    algorithm_identifier = None
+    with open(filepath, "rb") as reader:
+        algorithm_identifier = ba2int(get_n_bits(reader.read(1), 0, 1))
+    match algorithm_identifier:
+        case identifiers.basic_huffman:
+            basic_decode(filepath)
+        case _:
+            print(f"{filepath} was encoded using unknown type of algorithm")
+
+
 if __name__ == "__main__":
     args = get_args()
     for file in args.files:
@@ -37,8 +55,4 @@ if __name__ == "__main__":
             if args.is_verbose:
                 print(f"Path {file} is not a file or doesn't exist. It has been skipped.")
             continue
-        # recognize encoding algorithm type
-        # recognize original extension
-        # new_file = file.with_suffix(original_extension)
-        # decode(file, new_file)
-        print("Decoding has not been implemented yet")
+        decode(file)

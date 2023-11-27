@@ -1,24 +1,4 @@
-class Node:
-
-    def __init__(self, weight, parent=None, side=None, symbol=None):
-        self.parent = parent
-        self.side = side
-        self.weight = weight
-        self.symbol = symbol
-        self.children = [None, None]
-
-    def __str__(self):
-        prefix = '\\' if self.side else '-'
-        suffix = f"({self.symbol})" if self.symbol else ''
-        return f"{prefix}{self.weight} {suffix}"
-
-    def print(self, pad=1):
-        print(self, end='\t')
-        if self.children[0] is not None:
-            self.children[0].print(pad+1)
-        print('\n' + '\t'*pad, end='')
-        if self.children[1] is not None:
-            self.children[1].print(pad+1)
+from src.node import Node
 
 
 class HuffmanTree:
@@ -28,13 +8,13 @@ class HuffmanTree:
         # example data (to remove)
         self.nodes.append(Node(31))
         self.nodes.insert(0, Node(19, self.nodes[-1], 1))
-        self.nodes.insert(0, Node(12, self.nodes[-1], 0, 'B'))
+        self.nodes.insert(0, Node(12, self.nodes[-1], 0, "B"))
         self.nodes.insert(0, Node(11, self.nodes[-2], 1))
         self.nodes.insert(0, Node(8, self.nodes[-2], 0))
-        self.nodes.insert(0, Node(6, self.nodes[-4], 1, 'A'))
-        self.nodes.insert(0, Node(5, self.nodes[-4], 0, 'D'))
-        self.nodes.insert(0, Node(4, self.nodes[-5], 1, 'E'))
-        self.nodes.insert(0, Node(4, self.nodes[-5], 0, 'C'))
+        self.nodes.insert(0, Node(6, self.nodes[-4], 1, "A"))
+        self.nodes.insert(0, Node(5, self.nodes[-4], 0, "D"))
+        self.nodes.insert(0, Node(4, self.nodes[-5], 1, "E"))
+        self.nodes.insert(0, Node(4, self.nodes[-5], 0, "C"))
         for n in self.nodes:
             if n.parent:
                 n.parent.children[n.side] = n
@@ -104,59 +84,59 @@ class HuffmanTree:
 
     def print(self):
         self.nodes[-1].print()
-        print('\n====================')
+        print("\n====================")
 
 
 if __name__ == "__main__":
     ht = HuffmanTree()
-    print(ht.decode(ht.code('A')))
-    print(ht.decode(ht.code('B')))
-    print(ht.decode(ht.code('C')))
-    print(ht.decode(ht.code('D')))
-    print(ht.decode(ht.code('E')))
-    ht.add('C')
+    print(ht.decode(ht.code("A")))
+    print(ht.decode(ht.code("B")))
+    print(ht.decode(ht.code("C")))
+    print(ht.decode(ht.code("D")))
+    print(ht.decode(ht.code("E")))
+    ht.add("C")
     ht.print()
-    print(ht.decode(ht.code('A')))
-    print(ht.decode(ht.code('B')))
-    print(ht.decode(ht.code('C')))
-    print(ht.decode(ht.code('D')))
-    print(ht.decode(ht.code('E')))
-    ht.add('C')
+    print(ht.decode(ht.code("A")))
+    print(ht.decode(ht.code("B")))
+    print(ht.decode(ht.code("C")))
+    print(ht.decode(ht.code("D")))
+    print(ht.decode(ht.code("E")))
+    ht.add("C")
     ht.print()
-    print(ht.decode(ht.code('A')))
-    print(ht.decode(ht.code('B')))
-    print(ht.decode(ht.code('C')))
-    print(ht.decode(ht.code('D')))
-    print(ht.decode(ht.code('E')))
-    ht.add('C')
+    print(ht.decode(ht.code("A")))
+    print(ht.decode(ht.code("B")))
+    print(ht.decode(ht.code("C")))
+    print(ht.decode(ht.code("D")))
+    print(ht.decode(ht.code("E")))
+    ht.add("C")
     ht.print()
-    print(ht.decode(ht.code('A')))
-    print(ht.decode(ht.code('B')))
-    print(ht.decode(ht.code('C')))
-    print(ht.decode(ht.code('D')))
-    print(ht.decode(ht.code('E')))
-    ht.add('C')
-    ht.add('C')
-    ht.add('C')
+    print(ht.decode(ht.code("A")))
+    print(ht.decode(ht.code("B")))
+    print(ht.decode(ht.code("C")))
+    print(ht.decode(ht.code("D")))
+    print(ht.decode(ht.code("E")))
+    ht.add("C")
+    ht.add("C")
+    ht.add("C")
     ht.print()
-    print(ht.decode(ht.code('A')))
-    print(ht.decode(ht.code('B')))
-    print(ht.decode(ht.code('C')))
-    print(ht.decode(ht.code('D')))
-    print(ht.decode(ht.code('E')))
-    ht.add('N')
+    print(ht.decode(ht.code("A")))
+    print(ht.decode(ht.code("B")))
+    print(ht.decode(ht.code("C")))
+    print(ht.decode(ht.code("D")))
+    print(ht.decode(ht.code("E")))
+    ht.add("N")
     ht.print()
 
-    print(ht.code('A'))
-    print(ht.code('B'))
-    print(ht.code('C'))
-    print(ht.code('D'))
-    print(ht.code('E'))
-    print(ht.code('N'))
+    print(ht.code("A"))
+    print(ht.code("B"))
+    print(ht.code("C"))
+    print(ht.code("D"))
+    print(ht.code("E"))
+    print(ht.code("N"))
 
-    print(ht.decode(ht.code('A')))
-    print(ht.decode(ht.code('B')))
-    print(ht.decode(ht.code('C')))
-    print(ht.decode(ht.code('D')))
-    print(ht.decode(ht.code('E')))
-    print(ht.decode(ht.code('N')))
+    print(ht.decode(ht.code("A")))
+    print(ht.decode(ht.code("B")))
+    print(ht.decode(ht.code("C")))
+    print(ht.decode(ht.code("D")))
+    print(ht.decode(ht.code("E")))
+    print(ht.decode(ht.code("N")))

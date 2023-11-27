@@ -5,3 +5,6 @@
 Lib/*
 Scripts/*
 pyvenv.cfg
+
+# python bytecode
+src/__pycache__/*

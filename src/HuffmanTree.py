@@ -3,34 +3,20 @@ from src.node import Node
 
 class HuffmanTree:
     def __init__(self):
-        self.nodes = []  # attribute
-
-        # example data (to remove)
-        self.nodes.append(Node(31))
-        self.nodes.insert(0, Node(19, self.nodes[-1], 1))
-        self.nodes.insert(0, Node(12, self.nodes[-1], 0, "B"))
-        self.nodes.insert(0, Node(11, self.nodes[-2], 1))
-        self.nodes.insert(0, Node(8, self.nodes[-2], 0))
-        self.nodes.insert(0, Node(6, self.nodes[-4], 1, "A"))
-        self.nodes.insert(0, Node(5, self.nodes[-4], 0, "D"))
-        self.nodes.insert(0, Node(4, self.nodes[-5], 1, "E"))
-        self.nodes.insert(0, Node(4, self.nodes[-5], 0, "C"))
-        for n in self.nodes:
-            if n.parent:
-                n.parent.children[n.side] = n
+        self.NYT = Node()
+        self.nodes = [self.NYT]  # attribute
 
     def add(self, symbol):
         i = self._find_symbol(symbol)
 
         if i is None:
-            sibling = self.nodes[0]
-            parent = Node(sibling.weight, sibling.parent, sibling.side)
-            if sibling.parent:
-                sibling.parent.children[sibling.side] = parent
-            parent.children[1] = sibling
+            parent = Node(1, self.NYT.parent, self.NYT.side)
+            if self.NYT.parent:
+                self.NYT.parent.children[self.NYT.side] = parent
+            parent.children[1] = self.NYT
             parent.children[0] = Node(0, parent, 0, symbol)
-            sibling.parent = parent
-            sibling.side = 1
+            self.NYT.parent = parent
+            self.NYT.side = 1
             self.nodes.insert(1, parent)
             self.nodes.insert(0, parent.children[0])
             return
@@ -53,17 +39,20 @@ class HuffmanTree:
 
     def code(self, symbol):
         i = self._find_symbol(symbol)
-        n = self.nodes[i]
+        n = self.NYT if i is None else self.nodes[i]
         code = ""
         while n.parent:
             code = str(n.side) + code
             n = n.parent
-        return code
+        return code + symbol if i is None else code
 
     def decode(self, code):
         n = self.nodes[-1]
-        for c in code:
+        for i, c in enumerate(code):
+            if n == self.NYT:
+                return code[i:]
             n = n.children[int(c)]
+
         return n.symbol
 
     def _find_symbol(self, symbol):

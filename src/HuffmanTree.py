@@ -9,7 +9,7 @@ class HuffmanTree:
     def code(self, symbol):
         i = self._find_symbol(symbol)
         n = self.NYT if i is None else self.nodes[i]
-        code = ""
+        code = 0
         while n.parent:
             code = str(n.side) + code
             n = n.parent

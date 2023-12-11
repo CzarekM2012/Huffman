@@ -7,4 +7,4 @@ Scripts/*
 pyvenv.cfg
 
 # python bytecode
-src/__pycache__/*
+__pycache__/

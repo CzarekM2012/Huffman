@@ -4,6 +4,8 @@ from bitarray import bitarray
 LEFT_CHILD = 0
 RIGHT_CHILD = 1
 
+ChildSide = Union[LEFT_CHILD, RIGHT_CHILD]
+
 
 class Node:
     def __init__(
@@ -26,13 +28,13 @@ class Node:
 
     def print(self, pad=1):
         print(self, end="\t")
-        left = self.children[LEFT_CHILD]
-        if left is not None:
-            left.print(pad + 1)
-        print("\n" + "\t" * pad, end="")
         right = self.children[RIGHT_CHILD]
         if right is not None:
             right.print(pad + 1)
+        print("\n" + "\t" * pad, end="")
+        left = self.children[LEFT_CHILD]
+        if left is not None:
+            left.print(pad + 1)
 
     def get_codings(self) -> dict[bytes, bitarray]:
         codings: dict[bytes, bitarray] = {}
@@ -49,3 +51,8 @@ class Node:
 
         explore(self)
         return codings
+
+    def set_child(self, child: "Node", side: ChildSide):
+        self.children[side] = child
+        child.parent = self
+        child.side = side

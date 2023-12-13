@@ -21,7 +21,7 @@ class HuffmanTree:
             code.append(n.side)
             n = n.parent
         code.reverse()
-        # print('encoded eof', code)
+        print('encoded eof', code)
         return code
 
     def encode(self, symbol):
@@ -35,39 +35,78 @@ class HuffmanTree:
             code.append(n.side)
             n = n.parent
         code.reverse()
+
         self._add(symbol)
         if i is None:
             code.frombytes(symbol)
         return code
 
-    def decode(self, bits):
-        content = bitarray()
-        while len(bits) != 0:
-            while (self.decoding_node != self.NYT
-                   and self.decoding_node != self.EOF
-                   and self.decoding_node.symbol is None
-                   and len(bits) != 0):
-                child = bits.pop(0)
-                self.decoding_node = self.decoding_node.children[child]
+    def decode_symbol(self, encoding: bitarray) -> (bytearray, int, bool):
+        # print("enc: ", encoding)
+        cursor = 0
+        while (cursor != len(encoding)):
+            child = encoding[cursor]
+            # print("child: ", child)
+            self.decoding_node = self.decoding_node.children[child]
+            cursor += 1
 
             if self.decoding_node == self.NYT:
-                symbol = bits[:8]
-                [bits.pop(0) for _ in range(8)]
+                symbol = encoding[cursor:cursor+8]
+                cursor += 8
                 self._add(symbol)
                 self.decoding_node = self.nodes[-1]
-                # print('decoded: ', symbol)
-                content.extend(symbol)
+                return symbol, cursor, False
             elif self.decoding_node == self.EOF:
-                # print('decoded eof')
-                return content
+                print("found eof node")
+                print(encoding[:cursor])
+                return None, cursor, True
             elif self.decoding_node.symbol is not None:
                 symbol = self.decoding_node.symbol
-                self.decoding_node = self.nodes[-1]
-                # print('decoded: ', symbol)
+                # print("decoded: ", symbol)
                 self._add(symbol)
-                content.extend(symbol)
+                self.decoding_node = self.nodes[-1]
+                return symbol, cursor, False
+        return None, 0, False
 
-        return content
+    def decode(self, encoding) -> (bytearray, int, bool):
+        # print("encoding: ", encoding, len(encoding))
+        content = bitarray()
+        cursor = 0
+        symbol, bits_read, is_eof = self.decode_symbol(encoding)
+        while (symbol is not None):
+            cursor += bits_read
+            content.extend(symbol)
+            symbol, bits_read, is_eof = self.decode_symbol(encoding[cursor:])
+        return content, is_eof
+
+        # if symbol is not None:
+        #     content += symbol
+        # while len(bits) != 0:
+        #     offset = 0
+        #
+        #     while (self.decoding_node != self.NYT
+        #            and self.decoding_node != self.EOF
+        #            and self.decoding_node.symbol is None
+        #            and len(bits) != cursor):
+        #         child = bits[cursor]
+        #         offset += 1
+        #         self.decoding_node = self.decoding_node.children[child]
+        #
+        #     if self.decoding_node == self.NYT:
+        #         symbol = bits[cursor+offset:cursor+offset+8]
+        #         offset += 8
+        #         self._add(symbol)
+        #         self.decoding_node = self.nodes[-1]
+        #         content.extend(symbol)
+        #     elif self.decoding_node == self.EOF:
+        #         return content
+        #     elif self.decoding_node.symbol is not None:
+        #         symbol = self.decoding_node.symbol
+        #         self.decoding_node = self.nodes[-1]
+        #         self._add(symbol)
+        #         content.extend(symbol)
+        #
+        # return content
         # for b in self.buffer:
         #     if self.decoding_node == self.NYT:
         #         symbol = bitarray(self.buffer[:8])

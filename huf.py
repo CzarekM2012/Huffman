@@ -4,6 +4,7 @@ Collection arguments passed by user and calling encoding with huffman algorithm
 import argparse
 from pathlib import Path
 from src.basicHuffman import encode as basic_encode
+from src.adaptiveHuffman import encode as adaptive_encode
 
 TYPE_CHOICES = ["basic", "adaptive"]
 
@@ -46,11 +47,13 @@ if __name__ == "__main__":
     for file in args.files:
         if not file.is_file():
             if args.is_verbose:
-                print(f"Path {file} is not a file or doesn't exist. It has been skipped.")
+                print(
+                    f"Path {file} is not a file or doesn't exist. It has been skipped.")
             continue
         new_file = file.with_suffix(".huf")  # replace extension for new file
         if args.type == TYPE_CHOICES[0]:  # basic Huffman
             basic_encode(file, new_file)
-        else:  # adaptive Huffman
-            # adaptive_encode(file, new_file)
-            print("Encoding with adaptive Huffman algorithm has not been implemented yet")
+        elif args.type == TYPE_CHOICES[1]:
+            adaptive_encode(file, new_file)
+        else:
+            print("Unkown algorithm type option")

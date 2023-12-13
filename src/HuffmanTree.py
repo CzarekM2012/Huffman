@@ -1,38 +1,96 @@
 from src.node import Node, RIGHT_CHILD, LEFT_CHILD
+from bitarray import bitarray
 
 
 class HuffmanTree:
-    def __init__(self):
-        self.NYT = Node()
-        self.nodes = [self.NYT]  # attribute
+    buffer: bitarray
+    decoding_node: Node
 
-    def code(self, symbol):
+    def __init__(self):
+        self.buffer = bitarray()
+        self.NYT = Node()
+        self.EOF = Node()
+        self.nodes = [self.NYT]  # attribute
+        self._add_new_leaf(self.EOF, None)
+        self.decoding_node = self.nodes[-1]
+
+    def encode_eof(self):
+        n = self.EOF
+        code = bitarray()
+        while n.parent:
+            code.append(n.side)
+            n = n.parent
+        code.reverse()
+        # print('encoded eof', code)
+        return code
+
+    def encode(self, symbol):
         i = self._find_symbol(symbol)
         n = self.NYT if i is None else self.nodes[i]
-        code = 0
+        e = bitarray()
+        e.frombytes(symbol)
+        # print("encoded: ", e)
+        code = bitarray()
         while n.parent:
-            code = str(n.side) + code
+            code.append(n.side)
             n = n.parent
+        code.reverse()
         self._add(symbol)
-        return code + symbol if i is None else code
+        if i is None:
+            code.frombytes(symbol)
+        return code
 
-    def decode(self, code):
-        n = self.nodes[-1]
-        for i, c in enumerate(code):
-            if n == self.NYT:
-                self._add(code[i:])
-                return code[i:]
-            n = n.children[int(c)]
+    def decode(self, bits):
+        content = bitarray()
+        while len(bits) != 0:
+            while (self.decoding_node != self.NYT
+                   and self.decoding_node != self.EOF
+                   and self.decoding_node.symbol is None
+                   and len(bits) != 0):
+                child = bits.pop(0)
+                self.decoding_node = self.decoding_node.children[child]
 
-        self._add(n.symbol)
-        return n.symbol
+            if self.decoding_node == self.NYT:
+                symbol = bits[:8]
+                [bits.pop(0) for _ in range(8)]
+                self._add(symbol)
+                self.decoding_node = self.nodes[-1]
+                # print('decoded: ', symbol)
+                content.extend(symbol)
+            elif self.decoding_node == self.EOF:
+                # print('decoded eof')
+                return content
+            elif self.decoding_node.symbol is not None:
+                symbol = self.decoding_node.symbol
+                self.decoding_node = self.nodes[-1]
+                # print('decoded: ', symbol)
+                self._add(symbol)
+                content.extend(symbol)
+
+        return content
+        # for b in self.buffer:
+        #     if self.decoding_node == self.NYT:
+        #         symbol = bitarray(self.buffer[:8])
+        #         return symbol
+        #     self.decoding_node = self.decoding_node.children[b]
+        # return
+        # n = self.nodes[-1]
+        # for i, c in enumerate(code):
+        #     if n == self.NYT:
+        #         self._add(code[i:])
+        #         return code[i:]
+        #     n = n.children[int(c)]
+        #
+        # self._add(n.symbol)
+        # return n.symbol
 
     def _add(self, symbol):
         i = self._find_symbol(symbol)
+        self._add_new_leaf(Node(0, symbol=symbol), i)
 
+    def _add_new_leaf(self, new_leaf, i):
         if i is None:
             parent = Node(0)
-            new_leaf = Node(0, symbol=symbol)
             if self.NYT.parent:
                 self.NYT.parent.set_child(parent, self.NYT.side)
             parent.set_child(self.NYT, LEFT_CHILD)
@@ -40,7 +98,6 @@ class HuffmanTree:
             self.nodes.insert(1, parent)
             self.nodes.insert(1, new_leaf)
             i = 1
-
         node = None
         while node != self.nodes[-1]:
             node = self.nodes[i]

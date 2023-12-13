@@ -3,7 +3,6 @@ from math import ceil
 from bitarray import bitarray
 from bitarray.util import int2ba
 from src.HuffmanTree import HuffmanTree
-import os
 
 ADAPTIVE_HUFFMAN = 1
 
@@ -11,13 +10,10 @@ ADAPTIVE_HUFFMAN = 1
 def encode(src: Path, dst: Path):
     tree = HuffmanTree()
     encoded = bitarray()
-    file_size = os.path.getsize(src)
-    # print("src size is :", file_size, "bytes")
     with open(dst, "wb") as dst_file:
         encoding = bitarray()
         for character in src.suffix:
             encoding += tree.encode(character.encode())
-        # print("encoded suffix")
         header = (bitarray([ADAPTIVE_HUFFMAN])).tobytes()
         zero = bitarray('0').tobytes()
         extention_len = int2ba(len(encoding), 8)
@@ -31,8 +27,6 @@ def encode(src: Path, dst: Path):
 
         encoded += tree.encode_eof()
         dst_file.write(encoded)
-    dst_size = os.path.getsize(dst)
-    # print("dst size is :", dst_size, "bytes")
 
 
 def decode(src: Path):
@@ -45,29 +39,16 @@ def decode(src: Path):
         ext_encoding = bitarray()
         ext_encoding.frombytes(chunk)
         ext_encoding = ext_encoding[counts_len:counts_len + extention_len]
-        content_chunk, is_eof = tree.decode(ext_encoding)
-        # print("decoded suffix", content_chunk)
+        content_chunk, is_eof = tree.decode_chunk(ext_encoding)
         ext = content_chunk.tobytes()
         dst = src.with_suffix(ext.decode())
 
-        # rest = bitarray()
         with open(dst, "wb") as dst_file:
-            # print("tell", file.tell())
-            while (chunk := file.read(2**10)) != b"":
-                # print("rest: ", rest)
+            while not is_eof and (chunk := file.read(2**10)) != b"":
                 encoded_chunk = bitarray()
                 encoded_chunk.frombytes(chunk)
-                # print("rest + encoding: ", rest + encoded_chunk)
-                # print("encoded_chunk", encoded_chunk)
-                content_chunk, is_eof = tree.decode(encoded_chunk)
-                # print(content_chunk, bits_read, is_eof)
-                # print("bits_read: ", bits_read)
+                content_chunk, is_eof = tree.decode_chunk(encoded_chunk)
                 dst_file.write(content_chunk.tobytes())
-                # rest = encoded_chunk[bits_read:]
-                # tree.print()
-                if is_eof:
-                    print("got eof")
-                    break
 
 
 def get_n_bits(data: bytes, index: int, n: int) -> bitarray:

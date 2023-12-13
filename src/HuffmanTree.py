@@ -12,7 +12,7 @@ class HuffmanTree:
         self.EOF = Node()
         self.nodes = [self.NYT]  # attribute
         self._add_new_leaf(self.EOF, None)
-        self.decoding_node = self.nodes[-1]
+        self.working_node = self.nodes[-1]
 
     def encode_eof(self):
         n = self.EOF
@@ -21,15 +21,11 @@ class HuffmanTree:
             code.append(n.side)
             n = n.parent
         code.reverse()
-        print('encoded eof', code)
         return code
 
     def encode(self, symbol):
         i = self._find_symbol(symbol)
         n = self.NYT if i is None else self.nodes[i]
-        e = bitarray()
-        e.frombytes(symbol)
-        # print("encoded: ", e)
         code = bitarray()
         while n.parent:
             code.append(n.side)
@@ -41,87 +37,39 @@ class HuffmanTree:
             code.frombytes(symbol)
         return code
 
-    def decode_symbol(self, encoding: bitarray) -> (bytearray, int, bool):
-        # print("enc: ", encoding)
+    def decode_symbol(self, encoding: bitarray):
+        """ Returns decoded symbol, number of used bits and eof flag """
         cursor = 0
         while (cursor != len(encoding)):
             child = encoding[cursor]
-            # print("child: ", child)
-            self.decoding_node = self.decoding_node.children[child]
+            self.working_node = self.working_node.children[child]
             cursor += 1
 
-            if self.decoding_node == self.NYT:
+            if self.working_node == self.NYT:
                 symbol = encoding[cursor:cursor+8]
                 cursor += 8
                 self._add(symbol)
-                self.decoding_node = self.nodes[-1]
+                self.working_node = self.nodes[-1]
                 return symbol, cursor, False
-            elif self.decoding_node == self.EOF:
-                print("found eof node")
-                print(encoding[:cursor])
+            elif self.working_node == self.EOF:
                 return None, cursor, True
-            elif self.decoding_node.symbol is not None:
-                symbol = self.decoding_node.symbol
-                # print("decoded: ", symbol)
+            elif self.working_node.symbol is not None:
+                symbol = self.working_node.symbol
                 self._add(symbol)
-                self.decoding_node = self.nodes[-1]
+                self.working_node = self.nodes[-1]
                 return symbol, cursor, False
         return None, 0, False
 
-    def decode(self, encoding) -> (bytearray, int, bool):
-        # print("encoding: ", encoding, len(encoding))
+    def decode_chunk(self, chunk) -> (bytearray, bool):
+        """ Returns decoded symbols and eof flag """
         content = bitarray()
         cursor = 0
-        symbol, bits_read, is_eof = self.decode_symbol(encoding)
+        symbol, offset, is_eof = self.decode_symbol(chunk)
         while (symbol is not None):
-            cursor += bits_read
+            cursor += offset
             content.extend(symbol)
-            symbol, bits_read, is_eof = self.decode_symbol(encoding[cursor:])
+            symbol, offset, is_eof = self.decode_symbol(chunk[cursor:])
         return content, is_eof
-
-        # if symbol is not None:
-        #     content += symbol
-        # while len(bits) != 0:
-        #     offset = 0
-        #
-        #     while (self.decoding_node != self.NYT
-        #            and self.decoding_node != self.EOF
-        #            and self.decoding_node.symbol is None
-        #            and len(bits) != cursor):
-        #         child = bits[cursor]
-        #         offset += 1
-        #         self.decoding_node = self.decoding_node.children[child]
-        #
-        #     if self.decoding_node == self.NYT:
-        #         symbol = bits[cursor+offset:cursor+offset+8]
-        #         offset += 8
-        #         self._add(symbol)
-        #         self.decoding_node = self.nodes[-1]
-        #         content.extend(symbol)
-        #     elif self.decoding_node == self.EOF:
-        #         return content
-        #     elif self.decoding_node.symbol is not None:
-        #         symbol = self.decoding_node.symbol
-        #         self.decoding_node = self.nodes[-1]
-        #         self._add(symbol)
-        #         content.extend(symbol)
-        #
-        # return content
-        # for b in self.buffer:
-        #     if self.decoding_node == self.NYT:
-        #         symbol = bitarray(self.buffer[:8])
-        #         return symbol
-        #     self.decoding_node = self.decoding_node.children[b]
-        # return
-        # n = self.nodes[-1]
-        # for i, c in enumerate(code):
-        #     if n == self.NYT:
-        #         self._add(code[i:])
-        #         return code[i:]
-        #     n = n.children[int(c)]
-        #
-        # self._add(n.symbol)
-        # return n.symbol
 
     def _add(self, symbol):
         i = self._find_symbol(symbol)

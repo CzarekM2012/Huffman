@@ -8,8 +8,6 @@ from bitarray.util import ba2int
 from src.basicHuffman import decode as basic_decode, BASIC_HUFFMAN, get_n_bits
 from src.adaptiveHuffman import decode as adaptive_decode, ADAPTIVE_HUFFMAN
 
-TYPE_CHOICES = ["basic", "adaptive"]
-
 
 def get_args() -> argparse.Namespace:
     """
@@ -24,14 +22,6 @@ def get_args() -> argparse.Namespace:
     )
 
     parser.add_argument("files", metavar="FILE", nargs="+", type=Path)
-
-    parser.add_argument(
-        "-t",
-        "--type",
-        choices=TYPE_CHOICES,
-        default=TYPE_CHOICES[0],
-        help="Choose which type of the algorithm will be used",
-    )
 
     parser.add_argument(
         "-v",

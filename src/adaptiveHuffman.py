@@ -24,6 +24,9 @@ def encode(src: Path, dst: Path):
 
         for byte in read_bytes(src):
             encoded += tree.encode(byte)
+            if len(encoded) >= 2**10:
+                dst_file.write(encoded[:2**10])
+                encoded = encoded[2**10:]
 
         encoded += tree.encode_eof()
         dst_file.write(encoded)

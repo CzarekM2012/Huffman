@@ -1,10 +1,11 @@
 from typing import Union
+from enum import Enum
 from bitarray import bitarray
 
-LEFT_CHILD = 0
-RIGHT_CHILD = 1
 
-ChildSide = Union[LEFT_CHILD, RIGHT_CHILD]
+class ChildSide(Enum):
+    LEFT = 0
+    RIGHT = 1
 
 
 class Node:
@@ -12,7 +13,7 @@ class Node:
         self,
         weight: int = 0,
         parent: Union["Node", None] = None,
-        side: Union[int, None] = None,
+        side: Union[ChildSide, None] = None,
         symbol: Union[bytes, None] = None,
     ):
         self.parent = parent
@@ -28,11 +29,11 @@ class Node:
 
     def print(self, pad=1):
         print(self, end="\t")
-        right = self.children[RIGHT_CHILD]
+        right = self.children[ChildSide.RIGHT.value]
         if right is not None:
             right.print(pad + 1)
         print("\n" + "\t" * pad, end="")
-        left = self.children[LEFT_CHILD]
+        left = self.children[ChildSide.LEFT.value]
         if left is not None:
             left.print(pad + 1)
 
@@ -40,10 +41,10 @@ class Node:
         codings: dict[bytes, bitarray] = {}
 
         def explore(node: Node, code_prefix=bitarray()):
-            for side in [LEFT_CHILD, RIGHT_CHILD]:
-                child = node.children[side]
+            for side_index in [side.value for side in ChildSide]:
+                child = node.children[side_index]
                 if child is not None:
-                    explore(child, code_prefix + bitarray([side]))
+                    explore(child, code_prefix + bitarray([side_index]))
             if all(child is None for child in node.children):
                 if node.symbol is None:
                     raise ValueError("Leaf node does not contain symbol")
@@ -53,6 +54,6 @@ class Node:
         return codings
 
     def set_child(self, child: "Node", side: ChildSide):
-        self.children[side] = child
+        self.children[side.value] = child
         child.parent = self
         child.side = side

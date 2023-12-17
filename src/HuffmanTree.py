@@ -1,5 +1,5 @@
-from src.node import Node, RIGHT_CHILD, LEFT_CHILD
 from bitarray import bitarray
+from src.node import Node, ChildSide
 
 
 class HuffmanTree:
@@ -18,7 +18,7 @@ class HuffmanTree:
         n = self.EOF
         code = bitarray()
         while n.parent:
-            code.append(n.side)
+            code.append(n.side.value)
             n = n.parent
         code.reverse()
         return code
@@ -28,7 +28,7 @@ class HuffmanTree:
         n = self.NYT if i is None else self.nodes[i]
         code = bitarray()
         while n.parent:
-            code.append(n.side)
+            code.append(n.side.value)
             n = n.parent
         code.reverse()
 
@@ -80,8 +80,8 @@ class HuffmanTree:
             parent = Node(0)
             if self.NYT.parent:
                 self.NYT.parent.set_child(parent, self.NYT.side)
-            parent.set_child(self.NYT, LEFT_CHILD)
-            parent.set_child(new_leaf, RIGHT_CHILD)
+            parent.set_child(self.NYT, ChildSide.LEFT)
+            parent.set_child(new_leaf, ChildSide.RIGHT)
             self.nodes.insert(1, parent)
             self.nodes.insert(1, new_leaf)
             i = 1
@@ -124,9 +124,9 @@ class HuffmanTree:
     def _swap_nodes(self, i, j):
         a, b = self.nodes[i], self.nodes[j]
         if a.parent:
-            a.parent.children[a.side] = b
+            a.parent.children[a.side.value] = b
         if b.parent:
-            b.parent.children[b.side] = a
+            b.parent.children[b.side.value] = a
         a.parent, b.parent = b.parent, a.parent
         a.side, b.side = b.side, a.side
         self.nodes[i], self.nodes[j] = self.nodes[j], self.nodes[i]

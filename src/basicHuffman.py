@@ -3,7 +3,7 @@ from pathlib import Path
 import pickle
 from bitarray import bitarray
 from bitarray.util import int2ba, ba2int
-from src.node import Node, LEFT_CHILD, RIGHT_CHILD
+from src.node import Node, ChildSide
 from src.utility import read_bytes, get_n_bits
 
 #   encoded file structure:
@@ -40,10 +40,10 @@ def _build_tree(nodes: list[Node]) -> Node:
         left_child = nodes.pop(0)
         right_child = nodes.pop(0)
         new_node = Node(left_child.weight + right_child.weight)
-        new_node.children[LEFT_CHILD] = left_child
-        new_node.children[RIGHT_CHILD] = right_child
-        left_child.side = LEFT_CHILD
-        right_child.side = RIGHT_CHILD
+        new_node.children[ChildSide.LEFT.value] = left_child
+        new_node.children[ChildSide.RIGHT.value] = right_child
+        left_child.side = ChildSide.LEFT
+        right_child.side = ChildSide.RIGHT
         left_child.parent = new_node
         right_child.parent = new_node
 

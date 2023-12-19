@@ -1,8 +1,9 @@
 from math import ceil
 from pathlib import Path
-import pickle
+from io import BytesIO
 from bitarray import bitarray
 from bitarray.util import int2ba, ba2int
+import numpy as np
 from src.node import Node, ChildSide
 from src.utility import read_bytes, get_n_bits
 from collections import defaultdict
@@ -19,14 +20,22 @@ from collections import defaultdict
 BASIC_HUFFMAN = 0
 
 
-def _count_symbols(filepath: Path) -> dict[bytes, int]:
+def _count_symbols(filepath: Path):
     counts = defaultdict[bytes, int](int)
 
     for character in filepath.suffix:
         counts[character.encode()] += 1
     for byte in read_bytes(filepath):
         counts[byte] += 1
-    return counts
+
+    def dict_to_nparray():
+        max_count = max(counts.values())
+        bytes_used = 1
+        while max_count >= (2**8) ** bytes_used:
+            bytes_used += 1
+        return np.array(list(counts.items()), dtype=[("name", "S1"), ("count", f"<u{bytes_used}")])
+
+    return dict_to_nparray()
 
 
 def _build_tree(nodes: list[Node]) -> Node:
@@ -81,10 +90,10 @@ def _encode_contents(filepath: Path, encodings: dict[bytes, bitarray], chunk_siz
 
 def encode(filepath: Path, new_filepath: Path):
     symbols_counts = _count_symbols(filepath)
-    leaves = [Node(symbol=symbol, weight=count) for symbol, count in symbols_counts.items()]
-    # Generates long bytes objects.
-    # Custom encoding of symbol and weight only may significantly reduce overhead
-    serialized_counts = pickle.dumps(symbols_counts)
+    leaves = [Node(symbol=bytes(symbol), weight=int(count)) for symbol, count in symbols_counts]
+    serialization_proxy = BytesIO()
+    np.save(serialization_proxy, symbols_counts)
+    serialized_counts = serialization_proxy.getvalue()
     encoding_tree = _build_tree(leaves)
     encodings = encoding_tree.get_codings()
 
@@ -113,7 +122,8 @@ def _decode_codeblock(codeblock: bitarray, decoding_tree: Node):
         decoding_tree (Node): Tree of codes to be used in decoding
 
     Returns:
-        tuple[bytes, bitarray]: Decoded symbols and remainder at the end of the codeblock that could not be mapped to any symbol
+        tuple[bytes, bitarray]: Decoded symbols and remainder at the end of the codeblock that
+        could not be mapped to any symbol
     """
     decoded = bytes()
     code = codeblock
@@ -132,7 +142,7 @@ def _decode_codeblock(codeblock: bitarray, decoding_tree: Node):
     return decoded, code
 
 
-def decode(filepath: Path, destination):
+def decode(filepath: Path, destination: Path):
     with open(filepath, "rb") as reader:
         header = reader.read(4)
         end_padding = ba2int(get_n_bits(header[0:1], 1, 3))
@@ -140,8 +150,9 @@ def decode(filepath: Path, destination):
         extension_len = header[-1]
 
         chunk = reader.read(counts_len + ceil(extension_len / 8))
-        symbols_counts: dict[bytes, int] = pickle.loads(chunk[:counts_len])
-        leaves = [Node(symbol=symbol, weight=count) for symbol, count in symbols_counts.items()]
+        deserialization_proxy = BytesIO(chunk[:counts_len])
+        symbols_counts = np.load(deserialization_proxy)
+        leaves = [Node(symbol=bytes(symbol), weight=int(count)) for symbol, count in symbols_counts]
         decoding_tree = _build_tree(leaves)
 
         encoded_extension = bitarray()

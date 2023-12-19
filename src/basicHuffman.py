@@ -5,6 +5,7 @@ from bitarray import bitarray
 from bitarray.util import int2ba, ba2int
 from src.node import Node, ChildSide
 from src.utility import read_bytes, get_n_bits
+from collections import defaultdict
 
 #   encoded file structure:
 #   header: 1 byte: 1 bit to specify algorithm, 3 bits to specify number of padding bits at the end of the file (x), rest is padding 0s
@@ -19,18 +20,12 @@ BASIC_HUFFMAN = 0
 
 
 def _count_symbols(filepath: Path) -> dict[bytes, int]:
-    counts: dict[bytes, int] = {}
-
-    def count_byte(byte: bytes):
-        if byte in counts:
-            counts[byte] += 1
-        else:
-            counts[byte] = 1
+    counts = defaultdict[bytes, int](int)
 
     for character in filepath.suffix:
-        count_byte(character.encode())
+        counts[character.encode()] += 1
     for byte in read_bytes(filepath):
-        count_byte(byte)
+        counts[byte] += 1
     return counts
 
 
@@ -40,12 +35,8 @@ def _build_tree(nodes: list[Node]) -> Node:
         left_child = nodes.pop(0)
         right_child = nodes.pop(0)
         new_node = Node(left_child.weight + right_child.weight)
-        new_node.children[ChildSide.LEFT.value] = left_child
-        new_node.children[ChildSide.RIGHT.value] = right_child
-        left_child.side = ChildSide.LEFT
-        right_child.side = ChildSide.RIGHT
-        left_child.parent = new_node
-        right_child.parent = new_node
+        new_node.set_child(left_child, ChildSide.LEFT)
+        new_node.set_child(right_child, ChildSide.RIGHT)
 
         inserted = False
         for i, node in enumerate(nodes):
@@ -113,20 +104,30 @@ def encode(filepath: Path, new_filepath: Path):
         file.write(header_1st_byte + header_no_1st_byte)
 
 
-def _decode_contents(contents: bitarray, decoding_tree: Node):
+def _decode_codeblock(codeblock: bitarray, decoding_tree: Node):
+    """
+    Decodes given block of code
+
+    Args:
+        codeblock (bitarray): A block of code to be decoded
+        decoding_tree (Node): Tree of codes to be used in decoding
+
+    Returns:
+        tuple[bytes, bitarray]: Decoded symbols and remainder at the end of the codeblock that could not be mapped to any symbol
+    """
     decoded = bytes()
-    code = contents
-    temp = decoding_tree.get_codings()
-    # needs to return remainder of code
+    code = codeblock
     while True:
-        node = decoding_tree
+        node: Node = decoding_tree
         i = 0
-        while not all(child is None for child in node.children) and i < len(code):
-            node = node.children[code[i]]
+        while not node.is_leaf() and i < len(code):
+            # Presence of children is examined while checking if node is a leaf
+            node = node.children[code[i]]  # type: ignore
             i += 1
-        if not all(child is None for child in node.children):
+        if not node.is_leaf():
             break
-        decoded += node.symbol
+        # Symbol is inspected while checking if node is a leaf
+        decoded += node.symbol  # type: ignore
         code = code[i:]
     return decoded, code
 
@@ -146,7 +147,7 @@ def decode(filepath: Path):
         encoded_extension = bitarray()
         encoded_extension.frombytes(chunk[counts_len:])
         encoded_extension = encoded_extension[:extension_len]
-        extension, _ = _decode_contents(encoded_extension, decoding_tree)
+        extension, _ = _decode_codeblock(encoded_extension, decoding_tree)
 
         new_filepath = filepath.with_suffix(extension.decode())
         with open(new_filepath, "wb") as writer:
@@ -155,7 +156,7 @@ def decode(filepath: Path):
             decoded = bytes()
             # Iterator will stop when b"" is read (EOF)
             for chunk in iter(lambda: reader.read(2**10), b""):
-                decoded, remainder = _decode_contents(encoded, decoding_tree)
+                decoded, remainder = _decode_codeblock(encoded, decoding_tree)
                 writer.write(decoded)
                 # Operations up to this moment were executed data from chunk from previous iteration
                 code = bitarray()
@@ -164,5 +165,5 @@ def decode(filepath: Path):
             # Encoded here is the last not-empty chunk from reader
             if end_padding > 0:
                 encoded = encoded[:-end_padding]
-            decoded, _ = _decode_contents(encoded, decoding_tree)
+            decoded, _ = _decode_codeblock(encoded, decoding_tree)
             writer.write(decoded)

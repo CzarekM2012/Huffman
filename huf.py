@@ -50,6 +50,20 @@ def get_args() -> argparse.Namespace:
         help="Choose which type of the algorithm will be used",
     )
 
+    def positive_int(text: str):
+        val = int(text)
+        if val <= 0:
+            raise argparse.ArgumentTypeError(f"{val} is not a valid value for positive integer")
+        return val
+
+    parser.add_argument(
+        "-s",
+        "--symbol_size",
+        type=positive_int,
+        default=1,
+        help="Size of symbols that will be encoded in bytes. Needs to be a positive number",
+    )
+
     parser.add_argument(
         "-v",
         "--verbose",
@@ -91,7 +105,7 @@ if __name__ == "__main__":
             destination = file
         destination = destination.with_suffix(".huf")  # replace extension for new file
         if args.type == TYPE_CHOICES[0]:  # basic Huffman
-            basic_encode(file, destination)
+            basic_encode(file, destination, args.symbol_size)
         elif args.type == TYPE_CHOICES[1]:
             adaptive_encode(file, destination)
         else:

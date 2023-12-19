@@ -36,7 +36,7 @@ def encode(src: Path, dst: Path):
         dst_file.write(encoded)
 
 
-def decode(src: Path):
+def decode(src: Path, dst: Path):
     tree = HuffmanTree()
     with open(src, "rb") as file:
         ext_len = int.from_bytes(file.read(1)) & 127
@@ -44,7 +44,7 @@ def decode(src: Path):
         ext_enc = bytes2ba(ext_enc)[:ext_len]
         ext_chunk, is_eof = tree.decode_chunk(ext_enc)
         ext = ext_chunk.tobytes()
-        dst = src.with_suffix(ext.decode())
+        dst = dst.with_suffix(ext.decode())
 
         with open(dst, "wb") as dst_file:
             while not is_eof and (chunk := file.read(2**10)) != b"":

@@ -132,7 +132,7 @@ def _decode_codeblock(codeblock: bitarray, decoding_tree: Node):
     return decoded, code
 
 
-def decode(filepath: Path):
+def decode(filepath: Path, destination):
     with open(filepath, "rb") as reader:
         header = reader.read(4)
         end_padding = ba2int(get_n_bits(header[0:1], 1, 3))
@@ -149,8 +149,8 @@ def decode(filepath: Path):
         encoded_extension = encoded_extension[:extension_len]
         extension, _ = _decode_codeblock(encoded_extension, decoding_tree)
 
-        new_filepath = filepath.with_suffix(extension.decode())
-        with open(new_filepath, "wb") as writer:
+        destination = destination.with_suffix(extension.decode())
+        with open(destination, "wb") as writer:
             remainder = bitarray()
             encoded = bitarray()
             decoded = bytes()

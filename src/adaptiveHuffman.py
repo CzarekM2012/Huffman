@@ -3,7 +3,7 @@ from math import ceil
 from bitarray import bitarray
 from bitarray.util import int2ba
 from src.HuffmanTree import HuffmanTree
-from src.utility import read_bytes
+from src.utility import read_n_bytes
 
 ADAPTIVE_HUFFMAN = 1
 
@@ -26,7 +26,7 @@ def encode(src: Path, dst: Path):
         dst_file.write(encoding)
         encoding.clear()
 
-        for byte in read_bytes(src):
+        for byte in read_n_bytes(src):
             encoded += tree.encode(byte)
             if len(encoded) >= 2**10:
                 dst_file.write(encoded[: 2**10])

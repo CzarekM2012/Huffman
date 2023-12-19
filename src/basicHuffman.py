@@ -1,16 +1,17 @@
 from math import ceil
 from pathlib import Path
 from io import BytesIO
+from collections import defaultdict
 from bitarray import bitarray
 from bitarray.util import int2ba, ba2int
 import numpy as np
 from src.node import Node, ChildSide
-from src.utility import read_bytes, get_n_bits
-from collections import defaultdict
+from src.utility import read_n_bytes, get_n_bits, subsequences
+
 
 #   encoded file structure:
 #   header: 1 byte: 1 bit to specify algorithm, 3 bits to specify number of padding bits at the end of the file (x), rest is padding 0s
-#           2 bytes to specify how many bytes are taken by symbol counts (n),
+#           4 bytes to specify how many bytes are taken by symbol counts (n),
 #           1 byte to specify how many bits are taken by encoded extension (m)
 #   symbol counts: n bytes
 #   encoded extension: ceil(m/8) bytes
@@ -20,20 +21,22 @@ from collections import defaultdict
 BASIC_HUFFMAN = 0
 
 
-def _count_symbols(filepath: Path):
+def _count_symbols(filepath: Path, symbol_size: int = 1):
     counts = defaultdict[bytes, int](int)
 
-    for character in filepath.suffix:
-        counts[character.encode()] += 1
-    for byte in read_bytes(filepath):
-        counts[byte] += 1
+    for symbol in subsequences(filepath.suffix, symbol_size):
+        counts[symbol.encode()] += 1
+    for symbol in read_n_bytes(filepath, symbol_size):
+        counts[symbol] += 1
 
     def dict_to_nparray():
         max_count = max(counts.values())
         bytes_used = 1
         while max_count >= (2**8) ** bytes_used:
             bytes_used += 1
-        return np.array(list(counts.items()), dtype=[("name", "S1"), ("count", f"<u{bytes_used}")])
+        return np.array(
+            list(counts.items()), dtype=[("name", f"S{symbol_size}"), ("count", f"<u{bytes_used}")]
+        )
 
     return dict_to_nparray()
 
@@ -58,14 +61,16 @@ def _build_tree(nodes: list[Node]) -> Node:
     return nodes[0]
 
 
-def _encode_extension(filepath: Path, encodings: dict[bytes, bitarray]):
+def _encode_extension(filepath: Path, encodings: dict[bytes, bitarray], symbol_size: int):
     code = bitarray()
-    for character in filepath.suffix:
-        code += encodings[character.encode()]
+    for symbol in subsequences(filepath.suffix, symbol_size):
+        code += encodings[symbol.encode()]
     return (code.tobytes(), len(code))
 
 
-def _encode_contents(filepath: Path, encodings: dict[bytes, bitarray], chunk_size: int = 2**10):
+def _encode_contents(
+    filepath: Path, encodings: dict[bytes, bitarray], symbol_size: int, chunk_size: int = 2**10
+):
     """
     Encode contents of file in chunks.
 
@@ -77,19 +82,19 @@ def _encode_contents(filepath: Path, encodings: dict[bytes, bitarray], chunk_siz
     Yields:
         tuple[bytes, int]: Pair of encoded chunk of data and number of bits in the chunk that
         encode original information. Number of bits is equal to length of the chunk multiplied
-        by 8 for all chunks except for the last one.
+        by 8 for all chunks except for the last one due to it being padded to full bytes.
     """
     code = bitarray()
-    for byte in read_bytes(filepath):
-        code += encodings[byte]
+    for symbol in read_n_bytes(filepath, symbol_size, chunk_size):
+        code += encodings[symbol]
         if len(code) > chunk_size * 8:
             yield code[: chunk_size * 8].tobytes(), chunk_size * 8
             code = code[chunk_size * 8 :]
     yield code.tobytes(), len(code)
 
 
-def encode(filepath: Path, new_filepath: Path):
-    symbols_counts = _count_symbols(filepath)
+def encode(filepath: Path, new_filepath: Path, symbol_size: int = 1):
+    symbols_counts = _count_symbols(filepath, symbol_size)
     leaves = [Node(symbol=bytes(symbol), weight=int(count)) for symbol, count in symbols_counts]
     serialization_proxy = BytesIO()
     np.save(serialization_proxy, symbols_counts)
@@ -97,15 +102,15 @@ def encode(filepath: Path, new_filepath: Path):
     encoding_tree = _build_tree(leaves)
     encodings = encoding_tree.get_codings()
 
-    extension, extension_len = _encode_extension(filepath, encodings)
+    extension, extension_len = _encode_extension(filepath, encodings, symbol_size)
 
-    header_no_1st_byte = len(serialized_counts).to_bytes(length=2) + extension_len.to_bytes()
+    header_no_1st_byte = len(serialized_counts).to_bytes(length=4) + extension_len.to_bytes()
 
     with open(new_filepath, "wb") as file:
-        file.seek(4)
+        file.seek(6)
         file.write(serialized_counts + extension)
         padding_bits = 0
-        for chunk, code_len in _encode_contents(filepath, encodings):
+        for chunk, code_len in _encode_contents(filepath, encodings, symbol_size):
             file.write(chunk)
             padding_bits = len(chunk) * 8 - code_len
         file.seek(0)
@@ -144,9 +149,9 @@ def _decode_codeblock(codeblock: bitarray, decoding_tree: Node):
 
 def decode(filepath: Path, destination: Path):
     with open(filepath, "rb") as reader:
-        header = reader.read(4)
+        header = reader.read(6)
         end_padding = ba2int(get_n_bits(header[0:1], 1, 3))
-        counts_len = int.from_bytes(header[1:3])
+        counts_len = int.from_bytes(header[1:5])
         extension_len = header[-1]
 
         chunk = reader.read(counts_len + ceil(extension_len / 8))

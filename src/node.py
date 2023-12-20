@@ -17,6 +17,7 @@ class Node:
         symbol: Union[bytes, None] = None,
     ):
         self.parent = parent
+        self.pos = 0
         self.side = side
         self.weight = weight
         self.symbol = symbol

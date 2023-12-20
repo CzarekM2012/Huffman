@@ -43,15 +43,15 @@ def decode(src: Path, dst: Path):
         ext_enc = file.read(ceil(ext_len / 8))
         ext_enc = bytes2ba(ext_enc)[:ext_len]
         ext_chunk, is_eof = tree.decode_chunk(ext_enc)
-        ext = ext_chunk.tobytes()
-        dst = dst.with_suffix(ext.decode())
+        ext = ext_chunk
+        destination = dst.with_suffix(ext.decode())
 
-        with open(dst, "wb") as dst_file:
+        with open(destination, "wb") as dst_file:
             while not is_eof and (chunk := file.read(2**10)) != b"":
                 encoded_chunk = bitarray()
                 encoded_chunk.frombytes(chunk)
                 ext_chunk, is_eof = tree.decode_chunk(encoded_chunk)
-                dst_file.write(ext_chunk.tobytes())
+                dst_file.write(ext_chunk)
 
 
 def bytes2ba(data):
@@ -64,5 +64,5 @@ if __name__ == "__main__":
     my_test = "src/tests/files/obrazy_testowe/mytest.png"
     barbara = "src/tests/files/obrazy_testowe/barbara.pgm"
 
-    encode(my_test, "test_output")
-    decode("test_output")
+    encode(my_test, "test_encode")
+    decode("test_encode", "test_decode")

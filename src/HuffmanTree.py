@@ -1,10 +1,6 @@
-from bitarray import bitarray
 from typing import Union
-
-LEFT_CHILD = 0
-RIGHT_CHILD = 1
-
-ChildSide = Union[LEFT_CHILD, RIGHT_CHILD]
+from bitarray import bitarray
+from src.node import ChildSide
 
 
 class Node:
@@ -12,7 +8,7 @@ class Node:
         self,
         weight: int = 0,
         parent: Union["Node", None] = None,
-        side: Union[int, None] = None,
+        side: Union[ChildSide, None] = None,
         symbol: Union[bytes, None] = None,
     ):
         self.parent = parent
@@ -28,7 +24,7 @@ class Node:
         return f"{prefix}{self.weight} {suffix} pos={self.pos}"
 
     def set_child(self, child: "Node", side: ChildSide):
-        self.children[side] = child
+        self.children[side.value] = child
         child.parent = self
         child.side = side
 
@@ -62,51 +58,71 @@ class HuffmanTree:
     def _encode_node(self, n):
         code = ''
         while n.parent:
-            code = str(n.side) + code
+            code = str(n.side.value) + code
             n = n.parent
         return bitarray(code)
 
-    def decode(self, encoding: bitarray):
-        """ Returns decoded symbol, number of used bits and eof flag """
+    def decode_symbol(self, encoding: bitarray) -> tuple[Union[bytes, bitarray, None], int, bool]:
+        """
+        Decodes a single encoded symbol
+        Args:
+            encoding (bitarray): Array of bits containing the encoded symbol
+        Returns:
+            tuple[bytes | bitarray | None, int, bool]: Tuple containing: decoded symbol, number of bits used in decoding, value of EOF flag
+        """
         for cursor, child in enumerate(encoding):
             self.active_node = self.active_node.children[child]
-
             if self.active_node == self.EOF:
                 return None, cursor, True
-            elif self.active_node == self.NYT:
-                cursor += 1
-                symbol = encoding[cursor:cursor+8].tobytes()
+
+            cursor += 1
+
+            if self.active_node == self.NYT:
+                symbol = encoding[cursor: cursor + 8].tobytes()
                 cursor += 8
                 self._new_leaf(Node(0, symbol=symbol))
-            elif self.active_node.symbol is not None:
-                cursor += 1
-                symbol = self.active_node.symbol
-            else:
-                continue
+                self._increment(self.leafs[symbol])
+                self.active_node = self.nodes[0]
+                return symbol, cursor, False
 
-            self._increment(self.leafs[symbol])
-            self.active_node = self.nodes[0]
-            return symbol, cursor, False
+            if self.active_node.symbol is not None:
+                symbol = self.active_node.symbol
+                self._increment(self.leafs[symbol])
+                self.active_node = self.nodes[0]
+                return symbol, cursor, False
         return None, 0, False
 
-    def decode_chunk(self, chunk) -> (bytearray, bool):
-        """ Returns decoded symbols and eof flag """
+    def decode_chunk(self, chunk: bitarray):
+        """
+        Decodes encoded symbols
+        Args:
+            chunk (bitarray): Array of bits containing encoded symbols
+        Returns:
+            tuple[bitarray, bool]: Tuple containing: decoded symbols, value of EOF flag
+        """
         content = b""
         cursor = 0
-        symbol, offset, is_eof = self.decode(chunk)
+        symbol, offset, is_eof = self.decode_symbol(chunk)
         while (symbol is not None):
             cursor += offset
             content += symbol
-            symbol, offset, is_eof = self.decode(chunk[cursor:])
+            symbol, offset, is_eof = self.decode_symbol(chunk[cursor:])
         return content, is_eof
 
     def _new_leaf(self, leaf):
+        """
+        Adds new leaf in the tree by replacing NYT node with a parent node, whose childs are the new leaf and the NYT node
+        Args:
+            leaf (Node): Leaf to add
+        Returns:
+            Node: The added leaf
+        """
         nyt = self.nodes[-1]
         parent = Node(0)
         if nyt.parent:
             nyt.parent.set_child(parent, nyt.side)
-        parent.set_child(nyt, LEFT_CHILD)
-        parent.set_child(leaf, RIGHT_CHILD)
+        parent.set_child(nyt, ChildSide.LEFT)
+        parent.set_child(leaf, ChildSide.RIGHT)
         parent.pos = nyt.pos
         leaf.pos = parent.pos + 1
         nyt.pos = parent.pos + 2
@@ -117,7 +133,12 @@ class HuffmanTree:
             self.leafs[leaf.symbol] = leaf
         return leaf
 
-    def _increment(self, node):
+    def _increment(self, node: Node):
+        """
+        Slides given node in the tree and increments it's weight
+        Args:
+            node (Node): Node to slide
+        """
         root = self.nodes[0]
         while node != root:
             self._slide(node)
@@ -126,7 +147,12 @@ class HuffmanTree:
                 return
             node = node.parent
 
-    def _slide(self, node):
+    def _slide(self, node: Node):
+        """
+        Slides given node in the tree b finding the leader of it's block and swaps them
+        Args:
+            node (Node): Node to slide
+        """
         leader = node
         for n in self.nodes[node.pos:0:-1]:
             if n == node.parent:
@@ -136,15 +162,21 @@ class HuffmanTree:
             if n.weight > node.weight:
                 break
         self._swap(node, leader)
-        return leader
 
-    def _swap(self, a, b):
+    def _swap(self, a: Node, b: Node):
+        """
+        Swaps position of two node.
+        Args:
+            node (Node): First node to swap
+            node (Node): First node to swap
+        """
+
         if a == b:
             return
         if a.parent:
-            a.parent.children[a.side] = b
+            a.parent.children[a.side.value] = b
         if b.parent:
-            b.parent.children[b.side] = a
+            b.parent.children[b.side.value] = a
         a.parent, b.parent = b.parent, a.parent
         a.side, b.side = b.side, a.side
         i, j = a.pos, b.pos
@@ -160,12 +192,11 @@ class HuffmanTree:
                     new_level.append(None)
                     new_level.append(None)
                 else:
-                    new_level.append(n.children[LEFT_CHILD])
-                    new_level.append(n.children[RIGHT_CHILD])
+                    new_level.append(n.children[ChildSide.LEFT])
+                    new_level.append(n.children[ChildSide.RIGHT])
                 print(n, end='\t')
             level = new_level
             print()
             if all(n is None for n in level):
                 break
-
         print("\n====================")

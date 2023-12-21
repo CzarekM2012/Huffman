@@ -3,6 +3,7 @@ from math import ceil
 from bitarray import bitarray
 from bitarray.util import int2ba
 from src.HuffmanTree import HuffmanTree
+from src.utility import read_bytes
 
 ADAPTIVE_HUFFMAN = 1
 
@@ -28,14 +29,14 @@ def encode(src: Path, dst: Path):
         for byte in read_bytes(src):
             encoded += tree.encode(byte)
             if len(encoded) >= 2**10:
-                dst_file.write(encoded[:2**10])
+                dst_file.write(encoded[: 2**10])
                 encoded = encoded[2**10:]
 
         encoded += tree.encode_eof()
         dst_file.write(encoded)
 
 
-def decode(src: Path):
+def decode(src: Path, dst: Path):
     tree = HuffmanTree()
     with open(src, "rb") as file:
         ext_len = int.from_bytes(file.read(1)) & 127
@@ -43,24 +44,17 @@ def decode(src: Path):
         ext_enc = bytes2ba(ext_enc)[:ext_len]
         ext_chunk, is_eof = tree.decode_chunk(ext_enc)
         ext = ext_chunk
-        dst = src.with_suffix(ext.decode())
+        dst = dst.with_suffix(ext.decode())
 
         with open(dst, "wb") as dst_file:
             while not is_eof and (chunk := file.read(2**10)) != b"":
                 encoded_chunk = bitarray()
                 encoded_chunk.frombytes(chunk)
                 ext_chunk, is_eof = tree.decode_chunk(encoded_chunk)
-                dst_file.write(ext_chunk)
+            dst_file.write(ext_chunk)
 
 
 def bytes2ba(data):
     ba = bitarray()
     ba.frombytes(data)
     return ba
-
-
-def read_bytes(filepath: Path, chunk_size: int = 2**10):
-    with open(filepath, "rb") as file:
-        for chunk in iter(lambda: file.read(chunk_size), b""):
-            for i in range(len(chunk)):
-                yield chunk[i: i + 1]

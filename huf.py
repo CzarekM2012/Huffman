@@ -3,6 +3,7 @@ Collection arguments passed by user and calling encoding with huffman algorithm
 """
 import argparse
 from pathlib import Path
+from itertools import zip_longest
 from src.basicHuffman import encode as basic_encode
 from src.adaptiveHuffman import encode as adaptive_encode
 
@@ -21,7 +22,25 @@ def get_args() -> argparse.Namespace:
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
     )
 
-    parser.add_argument("files", metavar="FILE", nargs="+", type=Path)
+    parser.add_argument(
+        "-f",
+        "--files",
+        metavar="FILE",
+        nargs="+",
+        type=Path,
+        required=True,
+        help="Paths to files to encode. Required",
+    )
+    parser.add_argument(
+        "-d",
+        "--destinations",
+        metavar="DEST",
+        nargs="+",
+        type=Path,
+        default=[],
+        help="Paths where encoded files should be saved. Last extensions will be ignored. If \
+            omitted encoded files will be saved next to originals.",
+    )
 
     parser.add_argument(
         "-t",
@@ -44,16 +63,36 @@ def get_args() -> argparse.Namespace:
 
 if __name__ == "__main__":
     args = get_args()
-    for file in args.files:
+    file: Path
+    destination: Path | None
+    for file, destination in zip_longest(args.files, args.destinations):
         if not file.is_file():
             if args.is_verbose:
-                print(
-                    f"Path {file} is not a file or doesn't exist. It has been skipped.")
+                print(f"Path {file} is not a file or doesn't exist. It has been skipped.")
             continue
-        new_file = file.with_suffix(".huf")  # replace extension for new file
+        if destination is None:
+            if args.is_verbose:
+                print(
+                    (
+                        f"Destination for file {file} was not provided. Encoded file will be "
+                        "saved in the same directory as the original."
+                    )
+                )
+            destination = file
+        if not destination.parent.is_dir():
+            if args.is_verbose:
+                print(
+                    (
+                        f"Directory {destination.parent} does not exist. Destination for file "
+                        f"{file} will be ignored. Encoded file will saved in the same directory "
+                        "as the original."
+                    )
+                )
+            destination = file
+        destination = destination.with_suffix(".huf")  # replace extension for new file
         if args.type == TYPE_CHOICES[0]:  # basic Huffman
-            basic_encode(file, new_file)
+            basic_encode(file, destination)
         elif args.type == TYPE_CHOICES[1]:
-            adaptive_encode(file, new_file)
+            adaptive_encode(file, destination)
         else:
             print("Unkown algorithm type option")

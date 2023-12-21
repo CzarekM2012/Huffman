@@ -14,7 +14,7 @@ class TestSimpleCoding(unittest.TestCase):
 
     def assert_decoding(self, e, d, symbol):
         encoding = e.encode(symbol)
-        decoding, _, _ = d.decode(encoding)
+        decoding, _, _ = d.decode_symbol(encoding)
         self.assertEqual(decoding, symbol)
 
     def test_codings(self):
@@ -53,7 +53,7 @@ class TestSimpleCoding(unittest.TestCase):
         self.assert_decoding(encoder, decoder, b"v")
         self.assert_decoding(encoder, decoder, b"v")
         eof_encoding = encoder.encode_eof()
-        symbol, read, is_eof = decoder.decode(eof_encoding)
+        symbol, read, is_eof = decoder.decode_symbol(eof_encoding)
         self.assertTrue(is_eof)
 
     def test_decode_chunk(self):

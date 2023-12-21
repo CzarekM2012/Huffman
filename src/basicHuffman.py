@@ -21,7 +21,18 @@ from src.utility import read_n_bytes, get_n_bits, subsequences
 BASIC_HUFFMAN = 0
 
 
-def _count_symbols(filepath: Path, symbol_size: int = 1):
+def count_symbols(filepath: Path, symbol_size: int = 1):
+    """
+    Counts symbols in given file
+
+    Args:
+        filepath (Path): File to count symbols in
+        symbol_size (int, optional): Desired size of symbol in bytes. Defaults to 1.
+
+    Returns:
+        NDArray: Numpy array with columns `name` and `count`. `Name` contains symbols found in
+        file at `filepath`, `count` - number of times corresponding symbols appears in that file
+    """
     counts = defaultdict[bytes, int](int)
 
     for symbol in subsequences(filepath.suffix, symbol_size):
@@ -41,7 +52,16 @@ def _count_symbols(filepath: Path, symbol_size: int = 1):
     return dict_to_nparray()
 
 
-def _build_tree(nodes: list[Node]) -> Node:
+def build_tree(nodes: list[Node]) -> Node:
+    """
+    Builds encoding tree for basic Huffman algorithm
+
+    Args:
+        nodes (list[Node]): List of leaf nodes of the newly constructed tree
+
+    Returns:
+        Node: Root node of the tree
+    """
     nodes.sort(key=lambda node: node.weight)
     while len(nodes) > 1:
         left_child = nodes.pop(0)
@@ -94,12 +114,12 @@ def _encode_contents(
 
 
 def encode(filepath: Path, new_filepath: Path, symbol_size: int = 1):
-    symbols_counts = _count_symbols(filepath, symbol_size)
+    symbols_counts = count_symbols(filepath, symbol_size)
     leaves = [Node(symbol=bytes(symbol), weight=int(count)) for symbol, count in symbols_counts]
     serialization_proxy = BytesIO()
     np.save(serialization_proxy, symbols_counts)
     serialized_counts = serialization_proxy.getvalue()
-    encoding_tree = _build_tree(leaves)
+    encoding_tree = build_tree(leaves)
     encodings = encoding_tree.get_codings()
 
     extension, extension_len = _encode_extension(filepath, encodings, symbol_size)
@@ -158,7 +178,7 @@ def decode(filepath: Path, destination: Path):
         deserialization_proxy = BytesIO(chunk[:counts_len])
         symbols_counts = np.load(deserialization_proxy)
         leaves = [Node(symbol=bytes(symbol), weight=int(count)) for symbol, count in symbols_counts]
-        decoding_tree = _build_tree(leaves)
+        decoding_tree = build_tree(leaves)
 
         encoded_extension = bitarray()
         encoded_extension.frombytes(chunk[counts_len:])

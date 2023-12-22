@@ -1,0 +1,70 @@
+import os
+import numpy as np
+import pandas as pd
+from pathlib import Path
+from datetime import datetime
+from utility import read_n_bytes
+from src.basicHuffman import encode as basic_encode
+from src.adaptiveHuffman import encode as adaptive_encode
+from src.basicHuffman import decode as basic_decode, BASIC_HUFFMAN
+from src.adaptiveHuffman import decode as adaptive_decode, ADAPTIVE_HUFFMAN
+
+
+def calculate_entropy(symbols):
+    vals = symbols.values()
+    all_symbols = sum(symbols.values())
+    entropy = 0
+    for val in vals:
+        entropy += val/all_symbols * np.log2(val/all_symbols)
+    entropy *= -1
+    return entropy
+
+
+def measure_time_encode_basic(file_target: Path, file_destination: Path) -> float:
+    time = 0
+    for _ in range(5):
+        time_start = datetime.now()
+        basic_encode(filepath=Path(file_target),
+                     new_filepath=Path(file_destination),
+                     symbol_size=1)
+        time_end = datetime.now()
+        time += (time_end-time_start).total_seconds()
+    return time / 5
+
+
+def measure_time_decode_basic(file_target: Path, file_destination: Path) -> float:
+    time = 0
+    for _ in range(5):
+        time_start = datetime.now()
+        basic_decode(filepath=Path(file_target),
+                     destination=Path(file_destination))
+        time_end = datetime.now()
+        time += (time_end-time_start).total_seconds()
+    return time / 5
+
+
+def calculate_bitrate():
+    pass
+
+
+if __name__ == "__main__":
+    filenames = []
+    times_encode_basic = []
+    times_encode_adaptive = []
+    times_decode_basic = []
+    times_decode_adaptive = []
+
+    directory = 'data'
+    for root, dirs, files in os.walk(directory):
+        for filename in files[1:]:  # no .gitkeep
+            print(os.path.join(root, filename))
+            filenames.append(filename)
+            times_encode_basic.append(measure_time_encode_basic(file_target=os.path.join(root, filename),
+                                      file_destination=f'results/encoded/{filename}.huf'))
+            times_decode_basic.append(measure_time_decode_basic(file_target=f'results/encoded/{filename}.huf',
+                                      file_destination=f'results/decoded/{filename}.pgm'))
+
+
+times = pd.DataFrame([filenames, times_encode_basic, times_decode_basic],
+                     ["Filename", "Encode basic", "Decode basic"])
+times.to_excel("times.xlsx")

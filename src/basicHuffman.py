@@ -30,26 +30,30 @@ def count_symbols(filepath: Path, symbol_size: int = 1):
         symbol_size (int, optional): Desired size of symbol in bytes. Defaults to 1.
 
     Returns:
-        NDArray: Numpy array with columns `name` and `count`. `Name` contains symbols found in
-        file at `filepath`, `count` - number of times corresponding symbols appears in that file
+        NDArray: Numpy array with columns `symbol` and `count`. `Symbol` contains arrays of bytes
+        of length equal `symbol_size` found in file at `filepath`, `count` - number of times
+        corresponding symbols appears in that file
     """
     counts = defaultdict[bytes, int](int)
 
-    for symbol in subsequences(filepath.suffix, symbol_size):
-        counts[symbol.encode()] += 1
+    for symbol in subsequences(filepath.suffix.encode(), symbol_size):
+        if len(symbol) < symbol_size:
+            symbol = symbol.ljust(symbol_size, b"\x00")
+        counts[symbol] += 1
     for symbol in read_n_bytes(filepath, symbol_size):
         counts[symbol] += 1
 
     def dict_to_nparray():
         max_count = max(counts.values())
-        bytes_used = 1
-        while max_count >= (2**8) ** bytes_used:
-            bytes_used += 1
-        return np.array(
-            list(counts.items()), dtype=[("name", f"S{symbol_size}"), ("count", f"<u{bytes_used}")]
+        count_dtype = np.min_scalar_type(max_count)
+        array = np.array(
+            list(counts.items()),
+            dtype=[("symbol", f"V{symbol_size}"), ("count", count_dtype)],
         )
+        return array
 
-    return dict_to_nparray()
+    array = dict_to_nparray()
+    return array
 
 
 def np_serialize(array: np.ndarray):
@@ -61,6 +65,15 @@ def np_serialize(array: np.ndarray):
 def np_deserialize(serialized: bytes):
     deserialization_proxy = BytesIO(serialized)
     return np.load(deserialization_proxy)
+
+
+def counts_to_nodes(symbols_counts: np.ndarray):
+    nodes: list[Node] = []
+    for symbol, count in symbols_counts:
+        symbol = bytes(symbol)
+        weight = int(count)
+        nodes.append(Node(symbol=symbol, weight=weight))
+    return nodes
 
 
 def build_tree(nodes: list[Node]) -> Node:
@@ -94,8 +107,10 @@ def build_tree(nodes: list[Node]) -> Node:
 
 def _encode_extension(filepath: Path, encodings: dict[bytes, bitarray], symbol_size: int):
     code = bitarray()
-    for symbol in subsequences(filepath.suffix, symbol_size):
-        code += encodings[symbol.encode()]
+    for symbol in subsequences(filepath.suffix.encode(), symbol_size):
+        if len(symbol) < symbol_size:
+            symbol = symbol.ljust(symbol_size, b"\x00")
+        code += encodings[symbol]
     return (code.tobytes(), len(code))
 
 
@@ -126,7 +141,8 @@ def _encode_contents(
 
 def encode(filepath: Path, new_filepath: Path, symbol_size: int = 1):
     symbols_counts = count_symbols(filepath, symbol_size)
-    leaves = [Node(symbol=bytes(symbol), weight=int(count)) for symbol, count in symbols_counts]
+
+    leaves = counts_to_nodes(symbols_counts)
 
     encoding_tree = build_tree(leaves)
     encodings = encoding_tree.get_codings()
@@ -189,12 +205,14 @@ def decode(filepath: Path, destination: Path):
 
         symbols_counts = np_deserialize(chunk[:counts_len])
 
-        leaves = [Node(symbol=bytes(symbol), weight=int(count)) for symbol, count in symbols_counts]
+        leaves = counts_to_nodes(symbols_counts)
         decoding_tree = build_tree(leaves)
 
         encoded_extension = bytes2ba(chunk[counts_len:])
         encoded_extension = encoded_extension[:extension_len]
         extension, _ = _decode_codeblock(encoded_extension, decoding_tree)
+        while extension[-1:] == b"\x00":
+            extension = extension[:-1]
 
         destination = destination.with_suffix(extension.decode())
         with open(destination, "wb") as writer:
@@ -213,4 +231,6 @@ def decode(filepath: Path, destination: Path):
             if end_padding > 0:
                 encoded = encoded[:-end_padding]
             decoded, _ = _decode_codeblock(encoded, decoding_tree)
+            while decoded[-1:] == b"\x00":
+                decoded = decoded[:-1]
             writer.write(decoded)

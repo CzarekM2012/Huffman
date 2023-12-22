@@ -4,11 +4,9 @@ from datetime import datetime
 import numpy as np
 import pandas as pd
 
-from utility import read_n_bytes
-from src.basicHuffman import encode as basic_encode
-from src.adaptiveHuffman import encode as adaptive_encode
-from src.basicHuffman import decode as basic_decode, BASIC_HUFFMAN
-from src.adaptiveHuffman import decode as adaptive_decode, ADAPTIVE_HUFFMAN
+from src.utility import read_n_bytes
+from src.basicHuffman import encode as basic_encode, decode as basic_decode
+from src.adaptiveHuffman import encode as adaptive_encode, decode as adaptive_decode
 
 
 def calculate_entropy(symbols: dict) -> float:
@@ -16,7 +14,7 @@ def calculate_entropy(symbols: dict) -> float:
     all_symbols = sum(symbols.values())
     entropy = 0
     for val in vals:
-        entropy += val/all_symbols * np.log2(val/all_symbols)
+        entropy += val / all_symbols * np.log2(val / all_symbols)
     return -entropy
 
 
@@ -31,11 +29,9 @@ def measure_time_encode_basic(file_target: Path, file_destination: Path) -> floa
     time = 0
     for _ in range(5):
         time_start = datetime.now()
-        basic_encode(filepath=Path(file_target),
-                     new_filepath=Path(file_destination),
-                     symbol_size=1)
+        basic_encode(filepath=Path(file_target), new_filepath=Path(file_destination), symbol_size=1)
         time_end = datetime.now()
-        time += (time_end-time_start).total_seconds()
+        time += (time_end - time_start).total_seconds()
     return time / 5
 
 
@@ -43,10 +39,9 @@ def measure_time_decode_basic(file_target: Path, file_destination: Path) -> floa
     time = 0
     for _ in range(5):
         time_start = datetime.now()
-        basic_decode(filepath=Path(file_target),
-                     destination=Path(file_destination))
+        basic_decode(filepath=Path(file_target), destination=Path(file_destination))
         time_end = datetime.now()
-        time += (time_end-time_start).total_seconds()
+        time += (time_end - time_start).total_seconds()
     return time / 5
 
 
@@ -54,10 +49,9 @@ def measure_time_encode_adaptive(file_target: Path, file_destination: Path) -> f
     time = 0
     for _ in range(5):
         time_start = datetime.now()
-        adaptive_encode(src=Path(file_target),
-                        dst=Path(file_destination))
+        adaptive_encode(src=Path(file_target), dst=Path(file_destination))
         time_end = datetime.now()
-        time += (time_end-time_start).total_seconds()
+        time += (time_end - time_start).total_seconds()
     return time / 5
 
 
@@ -65,10 +59,9 @@ def measure_time_decode_adaptive(file_target: Path, file_destination: Path) -> f
     time = 0
     for _ in range(5):
         time_start = datetime.now()
-        adaptive_decode(src=Path(file_target),
-                        dst=Path(file_destination))
+        adaptive_decode(src=Path(file_target), dst=Path(file_destination))
         time_end = datetime.now()
-        time += (time_end-time_start).total_seconds()
+        time += (time_end - time_start).total_seconds()
     return time / 5
 
 
@@ -87,8 +80,8 @@ if __name__ == "__main__":
     entropy_2B = []
     entropy_3B = []
 
-    directory = 'data'
-    files = Path(directory).glob('*.pgm')
+    directory = "data"
+    files = Path(directory).glob("*.pgm")
     for file in files:
         print(file.name)
         filenames.append(file.name)
@@ -96,26 +89,37 @@ if __name__ == "__main__":
         #                           file_destination=f'results/encoded/{file.name}'))
         # times_decode_basic.append(measure_time_decode_basic(file_target=f'results/encoded/{file.name}',
         #                           file_destination=f'results/decoded/{file.name}'))
-        times_encode_adaptive.append(measure_time_encode_adaptive(file_target=file,
-                                     file_destination=f'results/encoded/{file.name}'))
-        times_decode_adaptive.append(measure_time_decode_adaptive(file_target=f'results/encoded/{file.name}',
-                                     file_destination=f'results/decoded/{file.name}'))
+        times_encode_adaptive.append(
+            measure_time_encode_adaptive(
+                file_target=file, file_destination=f"results/encoded/{file.name}"
+            )
+        )
+        times_decode_adaptive.append(
+            measure_time_decode_adaptive(
+                file_target=f"results/encoded/{file.name}",
+                file_destination=f"results/decoded/{file.name}",
+            )
+        )
 
         entropy_1B.append(calculate_entropy(count_symbols(file, 1)))
         entropy_2B.append(calculate_entropy(count_symbols(file, 2)))
         entropy_3B.append(calculate_entropy(count_symbols(file, 3)))
 
-    times_data = {"Filename": filenames,
-                  "Encode adaptive [s]": times_encode_adaptive,
-                  "Decode adaptive [s]": times_decode_adaptive}
+    times_data = {
+        "Filename": filenames,
+        "Encode adaptive [s]": times_encode_adaptive,
+        "Decode adaptive [s]": times_decode_adaptive,
+    }
     times = pd.DataFrame(times_data)
 
-    entropy_data = {"Filename": filenames,
-                    "Entropy 1B": entropy_1B,
-                    "Entropy 2B": entropy_2B,
-                    "Entropy 3B": entropy_3B}
+    entropy_data = {
+        "Filename": filenames,
+        "Entropy 1B": entropy_1B,
+        "Entropy 2B": entropy_2B,
+        "Entropy 3B": entropy_3B,
+    }
     entr = pd.DataFrame(entropy_data)
 
-    with pd.ExcelWriter(path="Huffman_results.xlsx", engine='xlsxwriter') as writer:
+    with pd.ExcelWriter(path="Huffman_results.xlsx", engine="xlsxwriter") as writer:
         entr.to_excel(excel_writer=writer, sheet_name="entropy", index=False)
         times.to_excel(excel_writer=writer, sheet_name="times", index=False)

@@ -1,4 +1,3 @@
-import os
 import numpy as np
 import pandas as pd
 from pathlib import Path
@@ -43,6 +42,28 @@ def measure_time_decode_basic(file_target: Path, file_destination: Path) -> floa
     return time / 5
 
 
+def measure_time_encode_adaptive(file_target: Path, file_destination: Path) -> float:
+    time = 0
+    for _ in range(5):
+        time_start = datetime.now()
+        adaptive_encode(src=Path(file_target),
+                        dst=Path(file_destination))
+        time_end = datetime.now()
+        time += (time_end-time_start).total_seconds()
+    return time / 5
+
+
+def measure_time_decode_adaptive(file_target: Path, file_destination: Path) -> float:
+    time = 0
+    for _ in range(5):
+        time_start = datetime.now()
+        adaptive_decode(src=Path(file_target),
+                        dst=Path(file_destination))
+        time_end = datetime.now()
+        time += (time_end-time_start).total_seconds()
+    return time / 5
+
+
 def calculate_bitrate():
     pass
 
@@ -55,16 +76,21 @@ if __name__ == "__main__":
     times_decode_adaptive = []
 
     directory = 'data'
-    for root, dirs, files in os.walk(directory):
-        for filename in files[1:]:  # no .gitkeep
-            print(os.path.join(root, filename))
-            filenames.append(filename)
-            times_encode_basic.append(measure_time_encode_basic(file_target=os.path.join(root, filename),
-                                      file_destination=f'results/encoded/{filename}.huf'))
-            times_decode_basic.append(measure_time_decode_basic(file_target=f'results/encoded/{filename}.huf',
-                                      file_destination=f'results/decoded/{filename}.pgm'))
+    files = Path(directory).glob('*.pgm')
+    for file in files:
+        print(file.name)
+        filenames.append(file.name)
+        # times_encode_basic.append(measure_time_encode_basic(file_target=file,
+        #                           file_destination=f'results/encoded/{file.name}'))
+        # times_decode_basic.append(measure_time_decode_basic(file_target=f'results/encoded/{file.name}',
+        #                           file_destination=f'results/decoded/{file.name}'))
+        times_encode_adaptive.append(measure_time_encode_adaptive(file_target=file,
+                                     file_destination=f'results/encoded/{file.name}'))
+        times_decode_adaptive.append(measure_time_decode_adaptive(file_target=f'results/encoded/{file.name}',
+                                     file_destination=f'results/decoded/{file.name}'))
 
-
-times = pd.DataFrame([filenames, times_encode_basic, times_decode_basic],
-                     ["Filename", "Encode basic", "Decode basic"])
-times.to_excel("times.xlsx")
+    df_data = {"Filename": filenames,
+               "Encode adaptive [s]": times_encode_adaptive,
+               "Decode adaptive [s]": times_decode_adaptive}
+    times = pd.DataFrame(df_data)
+    times.to_excel("times.xlsx")

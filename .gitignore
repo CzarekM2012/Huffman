@@ -2,6 +2,7 @@
 .vscode/*
 
 # python venv
+venv
 Lib/*
 Scripts/*
 pyvenv.cfg

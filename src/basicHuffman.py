@@ -6,7 +6,7 @@ from bitarray import bitarray
 from bitarray.util import int2ba, ba2int
 import numpy as np
 from src.node import Node, ChildSide
-from src.utility import read_n_bytes, get_n_bits, subsequences
+from src.utility import read_n_bytes, get_n_bits, subsequences, bytes2ba
 
 
 #   encoded file structure:
@@ -50,6 +50,17 @@ def count_symbols(filepath: Path, symbol_size: int = 1):
         )
 
     return dict_to_nparray()
+
+
+def np_serialize(array: np.ndarray):
+    serialization_proxy = BytesIO()
+    np.save(serialization_proxy, array)
+    return serialization_proxy.getvalue()
+
+
+def np_deserialize(serialized: bytes):
+    deserialization_proxy = BytesIO(serialized)
+    return np.load(deserialization_proxy)
 
 
 def build_tree(nodes: list[Node]) -> Node:
@@ -116,11 +127,11 @@ def _encode_contents(
 def encode(filepath: Path, new_filepath: Path, symbol_size: int = 1):
     symbols_counts = count_symbols(filepath, symbol_size)
     leaves = [Node(symbol=bytes(symbol), weight=int(count)) for symbol, count in symbols_counts]
-    serialization_proxy = BytesIO()
-    np.save(serialization_proxy, symbols_counts)
-    serialized_counts = serialization_proxy.getvalue()
+
     encoding_tree = build_tree(leaves)
     encodings = encoding_tree.get_codings()
+
+    serialized_counts = np_serialize(symbols_counts)
 
     extension, extension_len = _encode_extension(filepath, encodings, symbol_size)
 
@@ -175,13 +186,13 @@ def decode(filepath: Path, destination: Path):
         extension_len = header[-1]
 
         chunk = reader.read(counts_len + ceil(extension_len / 8))
-        deserialization_proxy = BytesIO(chunk[:counts_len])
-        symbols_counts = np.load(deserialization_proxy)
+
+        symbols_counts = np_deserialize(chunk[:counts_len])
+
         leaves = [Node(symbol=bytes(symbol), weight=int(count)) for symbol, count in symbols_counts]
         decoding_tree = build_tree(leaves)
 
-        encoded_extension = bitarray()
-        encoded_extension.frombytes(chunk[counts_len:])
+        encoded_extension = bytes2ba(chunk[counts_len:])
         encoded_extension = encoded_extension[:extension_len]
         extension, _ = _decode_codeblock(encoded_extension, decoding_tree)
 

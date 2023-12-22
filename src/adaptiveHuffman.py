@@ -3,7 +3,7 @@ from math import ceil
 from bitarray import bitarray
 from bitarray.util import int2ba
 from src.HuffmanTree import HuffmanTree
-from src.utility import read_n_bytes
+from src.utility import read_n_bytes, bytes2ba
 
 ADAPTIVE_HUFFMAN = 1
 
@@ -52,12 +52,6 @@ def decode(src: Path, dst: Path):
                 encoded_chunk.frombytes(chunk)
                 ext_chunk, is_eof = tree.decode_chunk(encoded_chunk)
                 dst_file.write(ext_chunk)
-
-
-def bytes2ba(data):
-    ba = bitarray()
-    ba.frombytes(data)
-    return ba
 
 
 if __name__ == "__main__":

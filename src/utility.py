@@ -60,3 +60,9 @@ def subsequences(sequence, length: int):
         yield sequence[:length]
         sequence = sequence[length:]
     yield sequence
+
+
+def bytes2ba(data: bytes):
+    ba = bitarray()
+    ba.frombytes(data)
+    return ba

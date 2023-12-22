@@ -80,8 +80,15 @@ if __name__ == "__main__":
     entropy_2B = []
     entropy_3B = []
 
-    directory = "data"
-    files = Path(directory).glob("*.pgm")
+    DATA_DIR = Path("data")
+    RESULTS_DIR = Path("results")
+    ENCODING_RESULTS = RESULTS_DIR.joinpath("encoded")
+    DECODING_RESULTS = RESULTS_DIR.joinpath("decoded")
+    for directory in [RESULTS_DIR, ENCODING_RESULTS, DECODING_RESULTS]:
+        if not directory.is_dir():
+            directory.mkdir()
+
+    files = DATA_DIR.glob("*.pgm")
     for file in files:
         print(file.name)
         filenames.append(file.name)
@@ -91,13 +98,13 @@ if __name__ == "__main__":
         #                           file_destination=f'results/decoded/{file.name}'))
         times_encode_adaptive.append(
             measure_time_encode_adaptive(
-                file_target=file, file_destination=f"results/encoded/{file.name}"
+                file_target=file, file_destination=ENCODING_RESULTS.joinpath(file.name)
             )
         )
         times_decode_adaptive.append(
             measure_time_decode_adaptive(
-                file_target=f"results/encoded/{file.name}",
-                file_destination=f"results/decoded/{file.name}",
+                file_target=ENCODING_RESULTS.joinpath(file.name),
+                file_destination=DECODING_RESULTS.joinpath(file.name),
             )
         )
 
@@ -120,6 +127,8 @@ if __name__ == "__main__":
     }
     entr = pd.DataFrame(entropy_data)
 
-    with pd.ExcelWriter(path="Huffman_results.xlsx", engine="xlsxwriter") as writer:
+    with pd.ExcelWriter(
+        path=RESULTS_DIR.joinpath("Huffman_results.xlsx"), engine="xlsxwriter"
+    ) as writer:
         entr.to_excel(excel_writer=writer, sheet_name="entropy", index=False)
         times.to_excel(excel_writer=writer, sheet_name="times", index=False)

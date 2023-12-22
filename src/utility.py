@@ -18,8 +18,8 @@ def read_n_bytes(filepath: Path, n: int = 1, chunk_size: int = 2**10):
         n (int, optional): number of bytes per block. Defaults to 1.
 
     Yields:
-        bytes: A single block of n bytes read from file. The last block will be shorter if the size
-        of file is not divisible by n
+        bytes: A single block of n bytes read from file. The last block will be padded with
+        trailing zeros if the size of file is not divisible by n
     """
     last_block = bytes()
     for chunk in read_chunks(filepath, chunk_size):
@@ -31,7 +31,7 @@ def read_n_bytes(filepath: Path, n: int = 1, chunk_size: int = 2**10):
                 break
             yield block
     if len(last_block) > 0:
-        yield last_block
+        yield last_block.ljust(n, b"\x00")
 
 
 def get_n_bits(data: bytes, index: int, n: int) -> bitarray:
@@ -59,7 +59,8 @@ def subsequences(sequence, length: int):
     while length < len(sequence):
         yield sequence[:length]
         sequence = sequence[length:]
-    yield sequence
+    if len(sequence) > 0:
+        yield sequence
 
 
 def bytes2ba(data: bytes):

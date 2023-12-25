@@ -2,12 +2,14 @@ from collections import defaultdict
 from pathlib import Path
 from datetime import datetime
 import os
+from bitarray import bitarray
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 import imageio.v2 as imageio
 
 from src.utility import read_n_bytes
+from src.HuffmanTree import HuffmanTree
 from src.basicHuffman import encode as basic_encode, decode as basic_decode, \
                              count_symbols, counts_to_nodes, build_tree
 from src.adaptiveHuffman import encode as adaptive_encode, decode as adaptive_decode
@@ -96,6 +98,29 @@ def calculate_bitrate_basic(filepath: Path, symbol_size: int = 1) -> float:
     return total_length / num_bitarrays
 
 
+def calculate_bitrate_adaptive(filepath: Path) -> float:
+    tree = HuffmanTree()
+    encoded = bitarray()
+    encoding = bitarray()
+    for character in filepath.suffix:
+        encoding += tree.encode(character.encode())
+        encoding.clear()
+
+    for byte in read_n_bytes(filepath):
+        encoded += tree.encode(byte)
+        if len(encoded) >= 2**10:
+            encoded = encoded[2**10 :]
+
+    total_length = 0
+    num_bitarrays = len(tree.leafs.values())
+    for leaf in tree.leafs.values():
+        total_length += len(tree._encode_node(leaf))
+
+    if num_bitarrays == 0:
+        return 0
+    return total_length / num_bitarrays
+
+
 if __name__ == "__main__":
     filenames = []
     times_encode_basic = []
@@ -132,6 +157,7 @@ if __name__ == "__main__":
         filenames.append(file.name)
         filesizes.append(file_size)
         bitrate_basic.append(calculate_bitrate_basic(file))
+        bitrate_adaptive.append(calculate_bitrate_adaptive(file))
         plot_histogram(file.name, file, save_path=HISTOGRAMS.joinpath(file.stem))
 
         times_encode_basic.append(
@@ -188,7 +214,7 @@ if __name__ == "__main__":
         "Filename": filenames,
         "Entropy": entropy_1B,
         "Bitrate basic": bitrate_basic,
-        # "Bitrate adaptive": bitrate_adaptive,
+        "Bitrate adaptive": bitrate_adaptive,
     }
     bitrate = pd.DataFrame(bitrate_data)
 

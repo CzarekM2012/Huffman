@@ -13,3 +13,4 @@ __pycache__/
 # exclude data from source control
 data/*
 results/*
+!results/Huffman_results.xlsx

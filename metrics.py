@@ -3,6 +3,7 @@ from pathlib import Path
 from datetime import datetime
 import numpy as np
 import pandas as pd
+import os
 
 from src.utility import read_n_bytes
 from src.basicHuffman import encode as basic_encode, decode as basic_decode
@@ -80,6 +81,10 @@ if __name__ == "__main__":
     entropy_2B = []
     entropy_3B = []
 
+    filesizes = []
+    cr_basic = []
+    cr_adaptive = []
+
     DATA_DIR = Path("data")
     RESULTS_DIR = Path("results")
     ENCODING_RESULTS = RESULTS_DIR.joinpath("encoded")
@@ -91,16 +96,29 @@ if __name__ == "__main__":
     files = DATA_DIR.glob("*.pgm")
     for file in files:
         print(file.name)
+        file_size = os.path.getsize(file)
         filenames.append(file.name)
-        # times_encode_basic.append(measure_time_encode_basic(file_target=file,
-        #                           file_destination=f'results/encoded/{file.name}'))
-        # times_decode_basic.append(measure_time_decode_basic(file_target=f'results/encoded/{file.name}',
-        #                           file_destination=f'results/decoded/{file.name}'))
+        filesizes.append(file_size)
+        times_encode_basic.append(
+            measure_time_encode_basic(
+                file_target=file, file_destination=ENCODING_RESULTS.joinpath(file.name)
+            )
+        )
+        file_size_basic = os.path.getsize(ENCODING_RESULTS.joinpath(file.name))
+        cr_basic.append(file_size_basic / file_size)
+        times_decode_basic.append(
+            measure_time_decode_basic(
+                file_target=ENCODING_RESULTS.joinpath(file.name),
+                file_destination=DECODING_RESULTS.joinpath(file.name),
+            )
+        )
         times_encode_adaptive.append(
             measure_time_encode_adaptive(
                 file_target=file, file_destination=ENCODING_RESULTS.joinpath(file.name)
             )
         )
+        file_size_adaptive = os.path.getsize(ENCODING_RESULTS.joinpath(file.name))
+        cr_adaptive.append(file_size_adaptive / file_size)
         times_decode_adaptive.append(
             measure_time_decode_adaptive(
                 file_target=ENCODING_RESULTS.joinpath(file.name),
@@ -114,6 +132,8 @@ if __name__ == "__main__":
 
     times_data = {
         "Filename": filenames,
+        "Encode basic [s]": times_encode_basic,
+        "Decode basic [s]": times_decode_basic,
         "Encode adaptive [s]": times_encode_adaptive,
         "Decode adaptive [s]": times_decode_adaptive,
     }
@@ -127,8 +147,17 @@ if __name__ == "__main__":
     }
     entr = pd.DataFrame(entropy_data)
 
+    cr_data = {
+        "Filename": filenames,
+        "File size [B]": filesizes,
+        "Compression rate basic": cr_basic,
+        "Compression rate adaptive": cr_adaptive,
+    }
+    cr = pd.DataFrame(cr_data)
+
     with pd.ExcelWriter(
         path=RESULTS_DIR.joinpath("Huffman_results.xlsx"), engine="xlsxwriter"
     ) as writer:
         entr.to_excel(excel_writer=writer, sheet_name="entropy", index=False)
         times.to_excel(excel_writer=writer, sheet_name="times", index=False)
+        cr.to_excel(excel_writer=writer, sheet_name="cr", index=False)

@@ -8,7 +8,8 @@ import pandas as pd
 import imageio.v2 as imageio
 
 from src.utility import read_n_bytes
-from src.basicHuffman import encode as basic_encode, decode as basic_decode
+from src.basicHuffman import encode as basic_encode, decode as basic_decode, \
+                             count_symbols, counts_to_nodes, build_tree
 from src.adaptiveHuffman import encode as adaptive_encode, decode as adaptive_decode
 
 
@@ -35,7 +36,7 @@ def calculate_entropy(symbols: dict) -> float:
     return -entropy
 
 
-def count_symbols(filepath: Path, block_size: int = 1) -> dict:
+def local_count_symbols(filepath: Path, block_size: int = 1) -> dict:
     symbols = defaultdict(int)
     for block in read_n_bytes(filepath=filepath, n=block_size):
         symbols[block] += 1
@@ -82,8 +83,17 @@ def measure_time_decode_adaptive(file_target: Path, file_destination: Path) -> f
     return time / 5
 
 
-def calculate_bitrate():
-    pass
+def calculate_bitrate_basic(filepath: Path, symbol_size: int = 1) -> float:
+    symbols_counts = count_symbols(filepath, symbol_size)
+    leaves = counts_to_nodes(symbols_counts)
+    encoding_tree = build_tree(leaves)
+    encodings = encoding_tree.get_codings()
+    total_length = sum(len(bit_val) for bit_val in encodings.values())
+    num_bitarrays = len(encodings)
+
+    if num_bitarrays == 0:
+        return 0
+    return total_length / num_bitarrays
 
 
 if __name__ == "__main__":
@@ -96,6 +106,9 @@ if __name__ == "__main__":
     entropy_1B = []
     entropy_2B = []
     entropy_3B = []
+
+    bitrate_basic = []
+    bitrate_adaptive = []
 
     filesizes = []
     cr_basic = []
@@ -113,10 +126,12 @@ if __name__ == "__main__":
     files = DATA_DIR.glob("*.pgm")
     for file in files:
         print(file.name)
-        plot_histogram(file.name, file, save_path=HISTOGRAMS.joinpath(file.stem))
         file_size = os.path.getsize(file)
         filenames.append(file.name)
         filesizes.append(file_size)
+        bitrate_basic.append(calculate_bitrate_basic(file))
+        plot_histogram(file.name, file, save_path=HISTOGRAMS.joinpath(file.stem))
+
         times_encode_basic.append(
             measure_time_encode_basic(
                 file_target=file, file_destination=ENCODING_RESULTS.joinpath(file.name)
@@ -144,9 +159,9 @@ if __name__ == "__main__":
             )
         )
 
-        entropy_1B.append(calculate_entropy(count_symbols(file, 1)))
-        entropy_2B.append(calculate_entropy(count_symbols(file, 2)))
-        entropy_3B.append(calculate_entropy(count_symbols(file, 3)))
+        entropy_1B.append(calculate_entropy(local_count_symbols(file, 1)))
+        entropy_2B.append(calculate_entropy(local_count_symbols(file, 2)))
+        entropy_3B.append(calculate_entropy(local_count_symbols(file, 3)))
 
     times_data = {
         "Filename": filenames,
@@ -165,6 +180,14 @@ if __name__ == "__main__":
     }
     entr = pd.DataFrame(entropy_data)
 
+    bitrate_data = {
+        "Filename": filenames,
+        "Entropy": entropy_1B,
+        "Bitrate basic": bitrate_basic,
+        # "Bitrate adaptive": bitrate_adaptive,
+    }
+    bitrate = pd.DataFrame(bitrate_data)
+
     cr_data = {
         "Filename": filenames,
         "File size [B]": filesizes,
@@ -177,5 +200,6 @@ if __name__ == "__main__":
         path=RESULTS_DIR.joinpath("Huffman_results.xlsx"), engine="xlsxwriter"
     ) as writer:
         entr.to_excel(excel_writer=writer, sheet_name="entropy", index=False)
+        bitrate.to_excel(excel_writer=writer, sheet_name="bitrate", index=False)
         times.to_excel(excel_writer=writer, sheet_name="times", index=False)
         cr.to_excel(excel_writer=writer, sheet_name="cr", index=False)

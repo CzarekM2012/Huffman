@@ -111,6 +111,8 @@ if __name__ == "__main__":
     bitrate_adaptive = []
 
     filesizes = []
+    filesizes_basic = []
+    filesizes_adaptive = []
     cr_basic = []
     cr_adaptive = []
 
@@ -138,6 +140,7 @@ if __name__ == "__main__":
             )
         )
         file_size_basic = os.path.getsize(ENCODING_RESULTS.joinpath(file.name))
+        filesizes_basic.append(file_size_basic)
         cr_basic.append(file_size_basic / file_size)
         times_decode_basic.append(
             measure_time_decode_basic(
@@ -151,6 +154,7 @@ if __name__ == "__main__":
             )
         )
         file_size_adaptive = os.path.getsize(ENCODING_RESULTS.joinpath(file.name))
+        filesizes_adaptive.append(file_size_adaptive)
         cr_adaptive.append(file_size_adaptive / file_size)
         times_decode_adaptive.append(
             measure_time_decode_adaptive(
@@ -191,6 +195,8 @@ if __name__ == "__main__":
     cr_data = {
         "Filename": filenames,
         "File size [B]": filesizes,
+        "Size basic [B]": filesizes_basic,
+        "Size adaptive [B]": filesizes_adaptive,
         "Compression rate basic": cr_basic,
         "Compression rate adaptive": cr_adaptive,
     }

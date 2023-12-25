@@ -1,13 +1,29 @@
 from collections import defaultdict
 from pathlib import Path
 from datetime import datetime
+import os
+import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
-import os
+import imageio.v2 as imageio
 
 from src.utility import read_n_bytes
 from src.basicHuffman import encode as basic_encode, decode as basic_decode
 from src.adaptiveHuffman import encode as adaptive_encode, decode as adaptive_decode
+
+
+def plot_histogram(file_name, file_path, save_path=None):
+    plt.figure()
+    image = imageio.imread(file_path)
+    histogram, _ = np.histogram(image.flatten(), bins=256, range=(0, 256))
+    plt.bar(np.arange(len(histogram)), histogram, color='gray', alpha=0.8)
+    plt.title(f'Histogram {file_name}')
+    plt.xlabel('Wartość')
+    plt.ylabel('Częstość')
+    if save_path:
+        plt.savefig(save_path)
+    else:
+        plt.show()
 
 
 def calculate_entropy(symbols: dict) -> float:
@@ -89,13 +105,15 @@ if __name__ == "__main__":
     RESULTS_DIR = Path("results")
     ENCODING_RESULTS = RESULTS_DIR.joinpath("encoded")
     DECODING_RESULTS = RESULTS_DIR.joinpath("decoded")
-    for directory in [RESULTS_DIR, ENCODING_RESULTS, DECODING_RESULTS]:
+    HISTOGRAMS = RESULTS_DIR.joinpath("histograms")
+    for directory in [RESULTS_DIR, ENCODING_RESULTS, DECODING_RESULTS, HISTOGRAMS]:
         if not directory.is_dir():
             directory.mkdir()
 
     files = DATA_DIR.glob("*.pgm")
     for file in files:
         print(file.name)
+        plot_histogram(file.name, file, save_path=HISTOGRAMS.joinpath(file.stem))
         file_size = os.path.getsize(file)
         filenames.append(file.name)
         filesizes.append(file_size)

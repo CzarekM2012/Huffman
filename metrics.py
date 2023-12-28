@@ -90,12 +90,14 @@ def calculate_bitrate_basic(filepath: Path, symbol_size: int = 1) -> float:
     leaves = counts_to_nodes(symbols_counts)
     encoding_tree = build_tree(leaves)
     encodings = encoding_tree.get_codings()
-    total_length = sum(len(bit_val) for bit_val in encodings.values())
-    num_bitarrays = len(encodings)
+    symbols_counts = local_count_symbols(filepath)
 
-    if num_bitarrays == 0:
-        return 0
-    return total_length / num_bitarrays
+    all_symbols = sum(symbols_counts.values())
+    bitrate = 0
+    for symbol in symbols_counts.keys():
+        bitrate += len(encodings[symbol]) * (symbols_counts[symbol] / all_symbols)
+
+    return bitrate
 
 
 def calculate_bitrate_adaptive(filepath: Path) -> float:

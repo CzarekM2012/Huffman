@@ -14,6 +14,9 @@ class HuffmanTree:
         self.active_node = self.nodes[0]
         self.leafs = {}
 
+        self.sum_weights = 0
+        self.bitrate = 0
+
     def encode_eof(self):
         return self._encode_node(self.EOF)
 
@@ -25,7 +28,10 @@ class HuffmanTree:
             code = self._encode_node(self.NYT)
             code.frombytes(symbol)
             node = self._new_leaf(Node(0, symbol=symbol))
+        self.sum_weights += 1
+        self.bitrate += len(code) * (node.weight / self.sum_weights)
         self._increment(node)
+
         return code
 
     def _encode_node(self, n: Node):

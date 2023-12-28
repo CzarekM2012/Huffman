@@ -2,7 +2,6 @@ from collections import defaultdict
 from pathlib import Path
 from datetime import datetime
 import os
-from bitarray import bitarray
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
@@ -102,25 +101,10 @@ def calculate_bitrate_basic(filepath: Path, symbol_size: int = 1) -> float:
 
 def calculate_bitrate_adaptive(filepath: Path) -> float:
     tree = HuffmanTree()
-    encoded = bitarray()
-    encoding = bitarray()
-    for character in filepath.suffix:
-        encoding += tree.encode(character.encode())
-        encoding.clear()
-
     for byte in read_n_bytes(filepath):
-        encoded += tree.encode(byte)
-        if len(encoded) >= 2**10:
-            encoded = encoded[2**10 :]
+        tree.encode(byte)
 
-    total_length = 0
-    num_bitarrays = len(tree.leafs.values())
-    for leaf in tree.leafs.values():
-        total_length += len(tree._encode_node(leaf))
-
-    if num_bitarrays == 0:
-        return 0
-    return total_length / num_bitarrays
+    return tree.bitrate
 
 
 if __name__ == "__main__":
@@ -162,47 +146,47 @@ if __name__ == "__main__":
         bitrate_adaptive.append(calculate_bitrate_adaptive(file))
         plot_histogram(file.name, file, save_path=HISTOGRAMS.joinpath(file.stem))
 
-        times_encode_basic.append(
-            measure_time_encode_basic(
-                file_target=file, file_destination=ENCODING_RESULTS.joinpath(file.name)
-            )
-        )
+        # times_encode_basic.append(
+        #     measure_time_encode_basic(
+        #         file_target=file, file_destination=ENCODING_RESULTS.joinpath(file.name)
+        #     )
+        # )
         file_size_basic = os.path.getsize(ENCODING_RESULTS.joinpath(file.name))
         filesizes_basic.append(file_size_basic)
         cr_basic.append(file_size_basic / file_size)
-        times_decode_basic.append(
-            measure_time_decode_basic(
-                file_target=ENCODING_RESULTS.joinpath(file.name),
-                file_destination=DECODING_RESULTS.joinpath(file.name),
-            )
-        )
-        times_encode_adaptive.append(
-            measure_time_encode_adaptive(
-                file_target=file, file_destination=ENCODING_RESULTS.joinpath(file.name)
-            )
-        )
+        # times_decode_basic.append(
+        #     measure_time_decode_basic(
+        #         file_target=ENCODING_RESULTS.joinpath(file.name),
+        #         file_destination=DECODING_RESULTS.joinpath(file.name),
+        #     )
+        # )
+        # times_encode_adaptive.append(
+        #     measure_time_encode_adaptive(
+        #         file_target=file, file_destination=ENCODING_RESULTS.joinpath(file.name)
+        #     )
+        # )
         file_size_adaptive = os.path.getsize(ENCODING_RESULTS.joinpath(file.name))
         filesizes_adaptive.append(file_size_adaptive)
         cr_adaptive.append(file_size_adaptive / file_size)
-        times_decode_adaptive.append(
-            measure_time_decode_adaptive(
-                file_target=ENCODING_RESULTS.joinpath(file.name),
-                file_destination=DECODING_RESULTS.joinpath(file.name),
-            )
-        )
+        # times_decode_adaptive.append(
+        #     measure_time_decode_adaptive(
+        #         file_target=ENCODING_RESULTS.joinpath(file.name),
+        #         file_destination=DECODING_RESULTS.joinpath(file.name),
+        #     )
+        # )
 
         entropy_1B.append(calculate_entropy(local_count_symbols(file, 1)))
         entropy_2B.append(calculate_entropy(local_count_symbols(file, 2)))
         entropy_3B.append(calculate_entropy(local_count_symbols(file, 3)))
 
-    times_data = {
-        "Filename": filenames,
-        "Encode basic [s]": times_encode_basic,
-        "Decode basic [s]": times_decode_basic,
-        "Encode adaptive [s]": times_encode_adaptive,
-        "Decode adaptive [s]": times_decode_adaptive,
-    }
-    times = pd.DataFrame(times_data)
+    # times_data = {
+    #     "Filename": filenames,
+    #     "Encode basic [s]": times_encode_basic,
+    #     "Decode basic [s]": times_decode_basic,
+    #     "Encode adaptive [s]": times_encode_adaptive,
+    #     "Decode adaptive [s]": times_decode_adaptive,
+    # }
+    # times = pd.DataFrame(times_data)
 
     entropy_data = {
         "Filename": filenames,
@@ -235,5 +219,5 @@ if __name__ == "__main__":
     ) as writer:
         entr.to_excel(excel_writer=writer, sheet_name="entropy", index=False)
         bitrate.to_excel(excel_writer=writer, sheet_name="bitrate", index=False)
-        times.to_excel(excel_writer=writer, sheet_name="times", index=False)
+        # times.to_excel(excel_writer=writer, sheet_name="times", index=False)
         cr.to_excel(excel_writer=writer, sheet_name="cr", index=False)

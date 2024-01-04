@@ -2,7 +2,6 @@ from collections import defaultdict
 from pathlib import Path
 from datetime import datetime
 import os
-from bitarray import bitarray
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
@@ -12,7 +11,8 @@ from src.utility import read_n_bytes
 from src.HuffmanTree import HuffmanTree
 from src.basicHuffman import encode as basic_encode, decode as basic_decode, \
                              count_symbols, counts_to_nodes, build_tree
-from src.adaptiveHuffman import encode as adaptive_encode, decode as adaptive_decode
+from src.adaptiveHuffman import encode as adaptive_encode, \
+                                decode as adaptive_decode
 
 
 def plot_histogram(file_name, file_path, save_path=None):
@@ -45,80 +45,78 @@ def local_count_symbols(filepath: Path, block_size: int = 1) -> dict:
     return symbols
 
 
-def measure_time_encode_basic(file_target: Path, file_destination: Path) -> float:
+def measure_time_encode_basic(file_target: Path, file_destination: Path
+                              ) -> float:
     time = 0
     for _ in range(5):
         time_start = datetime.now()
-        basic_encode(filepath=Path(file_target), new_filepath=Path(file_destination), symbol_size=1)
+        basic_encode(filepath=Path(file_target),
+                     new_filepath=Path(file_destination),
+                     symbol_size=1)
         time_end = datetime.now()
         time += (time_end - time_start).total_seconds()
     return time / 5
 
 
-def measure_time_decode_basic(file_target: Path, file_destination: Path) -> float:
+def measure_time_decode_basic(file_target: Path, file_destination: Path
+                              ) -> float:
     time = 0
     for _ in range(5):
         time_start = datetime.now()
-        basic_decode(filepath=Path(file_target), destination=Path(file_destination))
+        basic_decode(filepath=Path(file_target),
+                     destination=Path(file_destination))
         time_end = datetime.now()
         time += (time_end - time_start).total_seconds()
     return time / 5
 
 
-def measure_time_encode_adaptive(file_target: Path, file_destination: Path) -> float:
+def measure_time_encode_adaptive(file_target: Path, file_destination: Path
+                                 ) -> float:
     time = 0
     for _ in range(5):
         time_start = datetime.now()
-        adaptive_encode(src=Path(file_target), dst=Path(file_destination))
+        adaptive_encode(src=Path(file_target),
+                        dst=Path(file_destination))
         time_end = datetime.now()
         time += (time_end - time_start).total_seconds()
     return time / 5
 
 
-def measure_time_decode_adaptive(file_target: Path, file_destination: Path) -> float:
+def measure_time_decode_adaptive(file_target: Path, file_destination: Path
+                                 ) -> float:
     time = 0
     for _ in range(5):
         time_start = datetime.now()
-        adaptive_decode(src=Path(file_target), dst=Path(file_destination))
+        adaptive_decode(src=Path(file_target),
+                        dst=Path(file_destination))
         time_end = datetime.now()
         time += (time_end - time_start).total_seconds()
     return time / 5
 
 
-def calculate_bitrate_basic(filepath: Path, symbol_size: int = 1) -> float:
+def calculate_bitrate_basic(filepath: Path, symbol_size: int = 1
+                            ) -> float:
     symbols_counts = count_symbols(filepath, symbol_size)
     leaves = counts_to_nodes(symbols_counts)
     encoding_tree = build_tree(leaves)
     encodings = encoding_tree.get_codings()
-    total_length = sum(len(bit_val) for bit_val in encodings.values())
-    num_bitarrays = len(encodings)
+    symbols_counts = local_count_symbols(filepath)
 
-    if num_bitarrays == 0:
-        return 0
-    return total_length / num_bitarrays
+    all_symbols = sum(symbols_counts.values())
+    bitrate = 0
+    for symbol in symbols_counts.keys():
+        bitrate += len(encodings[symbol]) * (
+            symbols_counts[symbol] / all_symbols)
+
+    return bitrate
 
 
 def calculate_bitrate_adaptive(filepath: Path) -> float:
     tree = HuffmanTree()
-    encoded = bitarray()
-    encoding = bitarray()
-    for character in filepath.suffix:
-        encoding += tree.encode(character.encode())
-        encoding.clear()
-
     for byte in read_n_bytes(filepath):
-        encoded += tree.encode(byte)
-        if len(encoded) >= 2**10:
-            encoded = encoded[2**10 :]
+        tree.encode(byte)
 
-    total_length = 0
-    num_bitarrays = len(tree.leafs.values())
-    for leaf in tree.leafs.values():
-        total_length += len(tree._encode_node(leaf))
-
-    if num_bitarrays == 0:
-        return 0
-    return total_length / num_bitarrays
+    return tree.bitrate()
 
 
 if __name__ == "__main__":
@@ -146,7 +144,8 @@ if __name__ == "__main__":
     ENCODING_RESULTS = RESULTS_DIR.joinpath("encoded")
     DECODING_RESULTS = RESULTS_DIR.joinpath("decoded")
     HISTOGRAMS = RESULTS_DIR.joinpath("histograms")
-    for directory in [RESULTS_DIR, ENCODING_RESULTS, DECODING_RESULTS, HISTOGRAMS]:
+    for directory in [RESULTS_DIR, ENCODING_RESULTS,
+                      DECODING_RESULTS, HISTOGRAMS]:
         if not directory.is_dir():
             directory.mkdir()
 
@@ -158,11 +157,13 @@ if __name__ == "__main__":
         filesizes.append(file_size)
         bitrate_basic.append(calculate_bitrate_basic(file))
         bitrate_adaptive.append(calculate_bitrate_adaptive(file))
-        plot_histogram(file.name, file, save_path=HISTOGRAMS.joinpath(file.stem))
+        plot_histogram(file.name, file,
+                       save_path=HISTOGRAMS.joinpath(file.stem))
 
         times_encode_basic.append(
             measure_time_encode_basic(
-                file_target=file, file_destination=ENCODING_RESULTS.joinpath(file.name)
+                file_target=file,
+                file_destination=ENCODING_RESULTS.joinpath(file.name)
             )
         )
         file_size_basic = os.path.getsize(ENCODING_RESULTS.joinpath(file.name))
@@ -176,10 +177,12 @@ if __name__ == "__main__":
         )
         times_encode_adaptive.append(
             measure_time_encode_adaptive(
-                file_target=file, file_destination=ENCODING_RESULTS.joinpath(file.name)
+                file_target=file,
+                file_destination=ENCODING_RESULTS.joinpath(file.name)
             )
         )
-        file_size_adaptive = os.path.getsize(ENCODING_RESULTS.joinpath(file.name))
+        file_size_adaptive = os.path.getsize(
+            ENCODING_RESULTS.joinpath(file.name))
         filesizes_adaptive.append(file_size_adaptive)
         cr_adaptive.append(file_size_adaptive / file_size)
         times_decode_adaptive.append(
@@ -232,6 +235,7 @@ if __name__ == "__main__":
         path=RESULTS_DIR.joinpath("Huffman_results.xlsx"), engine="xlsxwriter"
     ) as writer:
         entr.to_excel(excel_writer=writer, sheet_name="entropy", index=False)
-        bitrate.to_excel(excel_writer=writer, sheet_name="bitrate", index=False)
+        bitrate.to_excel(excel_writer=writer, sheet_name="bitrate",
+                         index=False)
         times.to_excel(excel_writer=writer, sheet_name="times", index=False)
         cr.to_excel(excel_writer=writer, sheet_name="cr", index=False)

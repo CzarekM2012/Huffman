@@ -1,13 +1,14 @@
+from collections import defaultdict
+from io import BytesIO
 from math import ceil
 from pathlib import Path
-from io import BytesIO
-from collections import defaultdict
-from bitarray import bitarray
-from bitarray.util import int2ba, ba2int
-import numpy as np
-from src.node import Node, ChildSide
-from src.utility import read_n_bytes, get_n_bits, subsequences, bytes2ba
 
+import numpy as np
+from bitarray import bitarray
+from bitarray.util import ba2int, int2ba
+
+from src.node import ChildSide, Node
+from src.utility import bytes2ba, get_n_bits, read_n_bytes, subsequences
 
 #   encoded file structure:
 #   header: 1 byte: 1 bit to specify algorithm, 3 bits to specify number of padding bits at the end of the file (x), rest is padding 0s

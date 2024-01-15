@@ -1,9 +1,11 @@
-from pathlib import Path
 from math import ceil
+from pathlib import Path
+
 from bitarray import bitarray
 from bitarray.util import int2ba
+
 from src.HuffmanTree import HuffmanTree
-from src.utility import read_n_bytes, bytes2ba
+from src.utility import bytes2ba, read_n_bytes
 
 ADAPTIVE_HUFFMAN = 1
 

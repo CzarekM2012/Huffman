@@ -1,11 +1,12 @@
 """
-Collection arguments passed by user and calling encoding with huffman algorithm
+Collection of arguments passed by user and calling encoding with huffman algorithm
 """
 import argparse
-from pathlib import Path
 from itertools import zip_longest
-from src.basicHuffman import encode as basic_encode
+from pathlib import Path
+
 from src.adaptiveHuffman import encode as adaptive_encode
+from src.basicHuffman import encode as basic_encode
 
 TYPE_CHOICES = ["basic", "adaptive"]
 

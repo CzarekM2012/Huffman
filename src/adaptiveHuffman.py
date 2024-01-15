@@ -41,7 +41,7 @@ def encode(src: Path, dst: Path):
 def decode(src: Path, dst: Path):
     tree = HuffmanTree()
     with open(src, "rb") as file:
-        ext_len = int.from_bytes(file.read(1)) & 127
+        ext_len = int.from_bytes(file.read(1), byteorder="big") & 127
         ext_enc = file.read(ceil(ext_len / 8))
         ext_enc = bytes2ba(ext_enc)[:ext_len]
         ext_chunk, is_eof = tree.decode_chunk(ext_enc)

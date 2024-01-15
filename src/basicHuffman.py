@@ -152,7 +152,9 @@ def encode(filepath: Path, new_filepath: Path, symbol_size: int = 1):
 
     extension, extension_len = _encode_extension(filepath, encodings, symbol_size)
 
-    header_no_1st_byte = len(serialized_counts).to_bytes(length=4) + extension_len.to_bytes()
+    header_no_1st_byte = len(serialized_counts).to_bytes(
+        length=4, byteorder="big"
+    ) + extension_len.to_bytes(length=1, byteorder="big")
 
     with open(new_filepath, "wb") as file:
         file.seek(6)
@@ -199,7 +201,7 @@ def decode(filepath: Path, destination: Path):
     with open(filepath, "rb") as reader:
         header = reader.read(6)
         end_padding = ba2int(get_n_bits(header[0:1], 1, 3))
-        counts_len = int.from_bytes(header[1:5])
+        counts_len = int.from_bytes(header[1:5], byteorder="big")
         extension_len = header[-1]
 
         chunk = reader.read(counts_len + ceil(extension_len / 8))
